@@ -1,7 +1,8 @@
 import { Box, Download, Eraser, Globe2, MousePointerClick, Sparkles, Wand2 } from 'lucide-react'
 import { useState } from 'react'
-import { slug as toSlug } from '../lib/format'
-import type { Character, Design, SegmentResult } from '../lib/types'
+import type { Character, Design, Selection } from '../lib/types'
+
+export type ExportKind = 'png' | 'transparent' | 'sheet' | 'godot'
 
 const IDEAS = ['battle pose', 'casual outfit', 'winter coat', 'smiling and waving', 'side view', 'holding a sword']
 
@@ -47,7 +48,7 @@ export function EditPanel({
   setEditMode,
   pointPositive,
   setPointPositive,
-  segment,
+  selection,
   pointCount,
   onClear,
   onApply,
@@ -57,7 +58,7 @@ export function EditPanel({
   setEditMode: (v: boolean) => void
   pointPositive: boolean
   setPointPositive: (v: boolean) => void
-  segment: SegmentResult | null
+  selection: Selection | null
   pointCount: number
   onClear: () => void
   onApply: (prompt: string) => void
@@ -82,8 +83,8 @@ export function EditPanel({
           <p className="text-xs text-violet-300/70">
             {pointCount === 0
               ? 'Click on the canvas to select a part.'
-              : segment
-                ? `Selected ${(segment.coverage * 100).toFixed(1)}% of the image. Keep clicking to refine.`
+              : selection
+                ? `Selected ${(selection.coverage * 100).toFixed(1)}% of the image. Keep clicking to refine.`
                 : 'Selecting...'}
           </p>
           <input className="input" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. bright red hair" />
@@ -91,7 +92,7 @@ export function EditPanel({
             <button className="btn-ghost" onClick={() => { onClear(); setEditMode(false) }}><Eraser size={15} /> Cancel</button>
             <button
               className="btn-primary"
-              disabled={!segment || !prompt.trim()}
+              disabled={!selection || !prompt.trim()}
               onClick={() => { onApply(prompt); setPrompt('') }}
             >
               Apply change
@@ -105,28 +106,27 @@ export function EditPanel({
 
 export function ExportPanel({
   design,
-  character,
+  designCount,
   show3D,
   setShow3D,
-  onDownload,
+  onExport,
   onTogglePublish,
 }: {
   design: Design | null
-  character: Character
+  designCount: number
   show3D: boolean
   setShow3D: (v: boolean) => void
-  onDownload: (path: string, filename: string) => void
+  onExport: (kind: ExportKind) => void
   onTogglePublish: () => void
 }) {
-  const slug = toSlug(character.name)
   return (
     <section className="panel space-y-3 p-4">
       <h3 className="flex items-center gap-2 font-display text-sm font-bold"><Download size={15} /> Export</h3>
       <div className="grid grid-cols-2 gap-2">
-        <button className="btn-ghost" disabled={!design} onClick={() => design && onDownload(`/api/designs/${design.id}/export?format=png`, `${slug}_${design.id}.png`)}>PNG</button>
-        <button className="btn-ghost" disabled={!design} onClick={() => design && onDownload(`/api/designs/${design.id}/export?format=transparent`, `${slug}_${design.id}_transparent.png`)}>Transparent</button>
-        <button className="btn-ghost" disabled={character.design_count === 0} onClick={() => onDownload(`/api/characters/${character.id}/export?target=sheet`, `${slug}_sheet.zip`)}>Sprite sheet</button>
-        <button className="btn-ghost" disabled={character.design_count === 0} onClick={() => onDownload(`/api/characters/${character.id}/export?target=godot`, `${slug}_godot.zip`)}>Godot pack</button>
+        <button className="btn-ghost" disabled={!design} onClick={() => onExport('png')}>PNG</button>
+        <button className="btn-ghost" disabled={!design} onClick={() => onExport('transparent')}>Transparent</button>
+        <button className="btn-ghost" disabled={designCount === 0} onClick={() => onExport('sheet')}>Sprite sheet</button>
+        <button className="btn-ghost" disabled={designCount === 0} onClick={() => onExport('godot')}>Godot pack</button>
       </div>
       <button className="btn-ghost w-full" disabled={!design} onClick={() => setShow3D(!show3D)}>
         <Box size={15} /> {show3D ? 'Back to canvas' : '3D standee preview'}

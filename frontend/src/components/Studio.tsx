@@ -1,12 +1,17 @@
 import { Loader2, Sparkles } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Run } from '../App'
 import { api, fileUrl } from '../lib/api'
-import type { Character, Design, Point, SegmentResult } from '../lib/types'
+import { anchorFor, renderDesign, renderEdit, saveDesign, saveReference, type Rendered } from '../lib/engine'
+import { designCanvas, godotZip, saveBlob, spriteSheetZip, transparentPng } from '../lib/engine/exporting'
+import { ctx2d, toBlob } from '../lib/engine/image'
+import { coverage, overlayUrl, regionMask } from '../lib/engine/select'
+import { slug } from '../lib/format'
+import type { AiStatus, Character, Design, Point, Selection } from '../lib/types'
 import CanvasStage from './CanvasStage'
 import CharacterModal from './CharacterModal'
 import Gallery from './Gallery'
-import { EditPanel, ExportPanel, GeneratePanel } from './Panels'
+import { EditPanel, ExportPanel, GeneratePanel, type ExportKind } from './Panels'
 
 const Preview3D = lazy(() => import('./Preview3D')) // three.js only loads when the 3D view is opened
 
@@ -26,27 +31,34 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
   const [editMode, setEditMode] = useState(false)
   const [pointPositive, setPointPositive] = useState(true)
   const [points, setPoints] = useState<Point[]>([])
-  const [segment, setSegment] = useState<SegmentResult | null>(null)
+  const [selection, setSelection] = useState<Selection | null>(null)
   const [show3D, setShow3D] = useState(false)
-  const segSeq = useRef(0) // ignore out-of-order segment responses when clicking quickly
+  const [ai, setAi] = useState<AiStatus | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const pixels = useRef<{ id: number; canvas: HTMLCanvasElement; data: ImageData } | null>(null)
 
   const character = characters.find((c) => c.id === charId) ?? null
   const design = designs.find((d) => d.id === designId) ?? null
+  const useAi = !!ai?.enabled && ai.remaining > 0
 
   useEffect(() => {
     if (newCharacterSignal > 0) setShowModal(true)
   }, [newCharacterSignal])
 
-  const resetEditing = () => {
-    segSeq.current++
+  useEffect(() => {
+    api.aiStatus().then(setAi).catch(() => setAi(null))
+  }, [])
+
+  const resetEditing = useCallback(() => {
     setEditMode(false)
     setPoints([])
-    setSegment(null)
-  }
+    setSelection(null)
+  }, [])
 
   useEffect(() => {
     resetEditing()
     setShow3D(false)
+    setNotice(null)
     if (charId === null) {
       setDesigns([])
       setDesignId(null)
@@ -57,7 +69,16 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
       setDesigns(list)
       setDesignId(list.length ? list[list.length - 1].id : null)
     })
-  }, [charId, run])
+  }, [charId, run, resetEditing])
+
+  /** Pixels of the selected design (cached), used for selection and edits. */
+  const designPixels = async (d: Design) => {
+    if (pixels.current?.id !== d.id) {
+      const c = await designCanvas(d)
+      pixels.current = { id: d.id, canvas: c, data: ctx2d(c).getImageData(0, 0, c.width, c.height) }
+    }
+    return pixels.current
+  }
 
   const selectDesign = (id: number) => {
     resetEditing()
@@ -68,13 +89,17 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
     setShowModal(false)
     run('Creating character', async () => {
       let ch = await api.createCharacter(data)
-      if (file) ch = await api.uploadReference(ch.id, file)
+      if (file) ch = await saveReference(ch, file)
       await refresh()
       setCharId(ch.id)
     })
   }
 
-  const addDesign = async (d: Design) => {
+  const afterRender = async (r: Rendered, kind: 'generate' | 'edit', prompt: string, parentId?: number) => {
+    if (!character) return
+    if (r.remaining !== null) setAi((s) => (s ? { ...s, remaining: r.remaining! } : s))
+    setNotice(r.notice)
+    const d = await saveDesign(character, r, { kind, prompt, parentId })
     setDesigns((prev) => [...prev, d])
     resetEditing()
     setDesignId(d.id)
@@ -83,23 +108,31 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   const handleGenerate = (prompt: string, lock: boolean) => {
     if (!character) return
-    run('Generating design', async () => addDesign(await api.generate(character.id, prompt, lock)))
+    run(useAi ? 'Generating with AI (5-30 s)' : 'Generating design', async () => {
+      const anchor = lock ? await anchorFor(character, designs) : null
+      const r = await renderDesign(character, prompt, anchor, useAi)
+      await afterRender(r, 'generate', prompt)
+    })
   }
 
   const handleAddPoint = (p: Point) => {
     if (!design) return
     const next = [...points, p]
     setPoints(next)
-    const seq = ++segSeq.current
     run('Selecting region', async () => {
-      const res = await api.segment(design.id, next)
-      if (seq === segSeq.current) setSegment(res)
+      const { data } = await designPixels(design)
+      const mask = regionMask(data, next)
+      setSelection({ mask, overlayUrl: overlayUrl(mask, data.width, data.height), coverage: coverage(mask) })
     })
   }
 
   const handleApplyEdit = (prompt: string) => {
-    if (!design || !segment) return
-    run('Applying edit', async () => addDesign(await api.edit(design.id, segment.mask_id, prompt)))
+    if (!design || !selection) return
+    run(useAi ? 'Repainting with AI (10-40 s)' : 'Applying edit', async () => {
+      const { canvas } = await designPixels(design)
+      const r = await renderEdit(design, canvas, selection.mask, prompt, useAi)
+      await afterRender(r, 'edit', prompt, design.id)
+    })
   }
 
   const handleTogglePublish = () => {
@@ -111,7 +144,21 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
     })
   }
 
-  const handleDownload = (path: string, filename: string) => run('Preparing download', () => api.download(path, filename))
+  const handleExport = (kind: ExportKind) => {
+    if (!character) return
+    const base = slug(character.name)
+    run('Preparing download', async () => {
+      if ((kind === 'png' || kind === 'transparent') && design) {
+        const blob = kind === 'png' ? await toBlob(await designCanvas(design), 'image/png') : await transparentPng(design)
+        saveBlob(blob, `${base}_${design.id}${kind === 'transparent' ? '_transparent' : ''}.png`)
+        await api.logExport(character.id, kind === 'png' ? 'png PNG' : 'transparent PNG', design.id)
+      } else if (kind === 'sheet' || kind === 'godot') {
+        if (!designs.length) throw new Error('Generate at least one design first')
+        saveBlob(kind === 'sheet' ? await spriteSheetZip(character, designs) : await godotZip(character, designs), `${base}_${kind}.zip`)
+        await api.logExport(character.id, kind === 'sheet' ? 'sprite sheet' : 'Godot pack')
+      }
+    })
+  }
 
   const modal = showModal && <CharacterModal onClose={() => setShowModal(false)} onCreate={handleCreate} />
 
@@ -138,26 +185,36 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   return (
     <>
-      <header className="flex items-center gap-4">
+      <header className="flex flex-wrap items-center gap-4">
         {character.reference_url && (
           <img src={fileUrl(character.reference_url)} alt="Reference" className="h-14 w-14 rounded-xl border border-white/10 object-cover" />
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate font-display text-xl font-bold">{character.name}</h2>
           <p className="truncate text-sm text-violet-300/70">{character.style}{character.description && ` · ${character.description}`}</p>
         </div>
+        <span className="chip" title="Real images come from Cloudflare Workers AI; when the daily allowance is used up, procedural preview art is used">
+          {ai?.enabled ? (useAi ? `AI · ${ai.remaining} left today` : 'AI limit reached · preview art') : 'Preview art mode'}
+        </span>
       </header>
+
+      {notice && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100" role="status">
+          <span>{notice}</span>
+          <button className="underline" onClick={() => setNotice(null)}>OK</button>
+        </div>
+      )}
 
       <div className="grid flex-1 gap-4 lg:min-h-0 lg:grid-cols-[1fr_340px]">
         <section className="panel relative min-h-[460px] overflow-hidden">
           {show3D && design ? (
             <Suspense fallback={<Loader2 className="absolute inset-0 m-auto animate-spin text-violet-300" />}>
-              <Preview3D designId={design.id} />
+              <Preview3D design={design} />
             </Suspense>
           ) : (
             <CanvasStage
               imageUrl={design ? fileUrl(design.image_url) : null}
-              overlayUrl={segment ? fileUrl(segment.overlay_url) : null}
+              overlayUrl={selection?.overlayUrl ?? null}
               points={points}
               editMode={editMode}
               pointPositive={pointPositive}
@@ -179,17 +236,17 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
             setEditMode={(v) => { setEditMode(v); if (v) setShow3D(false) }}
             pointPositive={pointPositive}
             setPointPositive={setPointPositive}
-            segment={segment}
+            selection={selection}
             pointCount={points.length}
             onClear={resetEditing}
             onApply={handleApplyEdit}
           />
           <ExportPanel
             design={design}
-            character={character}
+            designCount={designs.length}
             show3D={show3D}
             setShow3D={(v) => { setShow3D(v); if (v) resetEditing() }}
-            onDownload={handleDownload}
+            onExport={handleExport}
             onTogglePublish={handleTogglePublish}
           />
         </div>

@@ -1,7 +1,8 @@
 ---
-description: Start the CharaForge backend (:8000) and frontend (:5173) dev servers in the background
+description: Start CharaForge locally (wrangler pages dev on :8788 with local D1, optional Vite on :5173)
 ---
-1. Start the backend in the background from `backend/`: `.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000`
-2. Start the frontend in the background from `frontend/`: `npm run dev`
-3. Check `http://localhost:8000/api/health` and report the `mock_ai` value, then tell the user to open http://localhost:5173.
-If port 8000 or 5173 is already in use, say so instead of starting duplicates.
+1. If `.dev.vars` is missing, create it with `JWT_SECRET=local-dev-secret`. If `.wrangler/state` is missing, run `npm run db:migrate:local`.
+2. `npm run build`, then start `npm run dev` in the background and wait for "Ready on http://127.0.0.1:8788".
+3. Optionally start `npm run dev:web` in the background for hot reload on http://localhost:5173.
+Tell the user the URLs. Mention that AI falls back to placeholder art locally (Workers AI only works when deployed).
+If the ports are busy, say so instead of starting duplicates.

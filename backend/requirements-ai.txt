@@ -1,9 +1,0 @@
-# Heavy AI stack - only needed when MOCK_AI=false
-# Install PyTorch FIRST from https://pytorch.org/get-started/locally/ (pick your CUDA version), then:
-diffusers>=0.30
-transformers>=4.44,<5
-accelerate>=0.33
-safetensors
-huggingface_hub
-# SAM2 (needs git installed; on Windows WSL2 is recommended by Meta)
-git+https://github.com/facebookresearch/sam2.git

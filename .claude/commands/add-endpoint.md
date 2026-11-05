@@ -4,7 +4,7 @@ argument-hint: <what the endpoint should do>
 ---
 Add this feature end to end: $ARGUMENTS
 
-Follow the "Adding an endpoint" checklist in `backend/CLAUDE.md` and the conventions in `frontend/CLAUDE.md`.
-Touch only the files that need it: `schemas.py`, the right router, maybe `services/*`, `frontend/src/lib/types.ts`,
+Follow the "Adding a route" checklist in `server/CLAUDE.md` and the conventions in `frontend/CLAUDE.md`.
+Touch only the files that need it: the right `server/routes/*.ts`, maybe `server/db.ts` and a new `migrations/*.sql`, `frontend/src/lib/types.ts`,
 `lib/api.ts`, `App.tsx`, and the component.
-Finish with the `/check` steps, then update `docs/API.md` (and `backend/CLAUDE.md`'s endpoint table).
+Finish with the `/check` steps, then update `docs/API.md` (and `server/CLAUDE.md`'s route table).

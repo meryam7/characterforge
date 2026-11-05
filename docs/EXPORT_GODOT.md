@@ -1,22 +1,18 @@
-# Exports and Godot integration (`backend/app/services/export.py`)
+# Exports and Godot (`frontend/src/lib/engine/exporting.ts`, built in the browser)
 
 | Export | Function | Output |
 |---|---|---|
-| PNG | `png_bytes` | the design as stored |
-| Transparent PNG | `remove_background(img, tolerance=28)` | flood-fills from the 4 corners to magenta, then alpha = not background, with a 0.8px Gaussian blur on the alpha |
-| Sprite sheet zip | `build_sheet_zip` | `sheet.png` (all designs side by side, transparent, frame = max w×h) and `atlas.json` `{character, frame_width, frame_height, frames:[{design_id,x,y,w,h}]}` |
-| Godot pack zip | `build_godot_zip` | `sprites/design_<id>.png` (transparent), `character.json` `{name, style, designs:[{id,file,prompt,kind,consistency}]}`, `CharacterLoader.gd`, `README.txt` |
+| PNG | `designCanvas` + `toBlob(png)` | 512×768 design |
+| Transparent PNG | `transparentPng` → `removeBackground` | flood fill from the 4 corners (step tolerance 24, seed tolerance 90), alpha 0, 0.6 px edge blur |
+| Sprite sheet | `spriteSheetZip` | `sheet.png` (frames side by side) + `atlas.json` `{character, frame_width, frame_height, frames:[{design_id,x,y,w,h}]}` |
+| Godot pack | `godotZip` | `sprites/design_<id>.png`, `character.json` `{name, style, designs:[{id,file,prompt,kind,consistency}]}`, `CharacterLoader.gd`, `README.txt` |
 
-`slug(name)`: lowercase, non-alphanumerics become `_`, falls back to `"character"`. The frontend duplicates it in `ExportPanel`.
+Zips use `fflate.zipSync`. Every export is recorded in the history via `POST /api/characters/:id/exported`.
 
-## CharacterLoader.gd (Godot 4)
-- The source the zip uses is `backend/app/assets/CharacterLoader.gd` (`export.LOADER`). `godot/CharacterLoader.gd` is an
-  identical copy for users, so keep both in sync.
-- `class_name CharacterLoader extends Node2D`, with `@export_file("*.json") var character_json`.
-- `_ready` creates a `Sprite2D` and calls `load_character(path)`, which parses the JSON and loads each `file` relative
-  to the JSON's directory.
-- API: `show_design(i)` (wraps around), `cycle()`, `current_label()`. `ui_accept` (Enter/Space) cycles designs.
-- Usage: unzip into `res://characters/<slug>/`, attach the script to a Node2D and set `character_json`.
+## CharacterLoader.gd (`frontend/src/assets/`, single copy)
+A Godot 4 `Node2D` with `@export_file character_json`. It loads every design's texture relative to the JSON.
+`show_design(i)`, `cycle()`, `current_label()`. `ui_accept` (Enter/Space) cycles. Usage: unzip into `res://characters/<slug>/`,
+attach the script to a Node2D and set `character_json`.
 
-Background removal assumes a plain near-white background that touches the corners. Characters touching the edges,
-or white clothing connected to the border, will be cut.
+Limitation: background removal expects a plain background touching the corners. AI images sometimes have soft grey
+gradients or floor shadows, so parts may remain.

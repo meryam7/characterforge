@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { api } from '../lib/api'
+import { transparentPng } from '../lib/engine/exporting'
+import type { Design } from '../lib/types'
 
 /** Optional 3D "standee" preview: the transparent sprite is stacked in thin layers and can be dragged to rotate. */
-export default function Preview3D({ designId }: { designId: number }) {
+export default function Preview3D({ design }: { design: Design }) {
   const ref = useRef<HTMLDivElement>(null)
   const [url, setUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     let objectUrl: string | null = null
-    api
-      .blob(`/api/designs/${designId}/export?format=transparent&preview=true`)
+    transparentPng(design)
       .then((b) => {
         if (!alive) return
         objectUrl = URL.createObjectURL(b)
@@ -24,7 +24,7 @@ export default function Preview3D({ designId }: { designId: number }) {
       alive = false
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [designId])
+  }, [design])
 
   useEffect(() => {
     const el = ref.current

@@ -1,4 +1,4 @@
-// Mirrors backend/app/schemas.py — keep in sync.
+// Mirrors the API output shapes in server/db.ts (characterOut, designOut, activityOut) and server/routes/*.
 export type User = { id: number; email: string; display_name: string; is_admin: boolean; created_at: string }
 export type AuthResult = { token: string; user: User }
 
@@ -8,6 +8,7 @@ export type Character = {
   description: string
   style: string
   seed: number
+  embedding: number[] | null
   reference_url: string | null
   cover_url: string | null
   design_count: number
@@ -19,6 +20,7 @@ export type Design = {
   character_id: number
   parent_id: number | null
   kind: 'generate' | 'edit'
+  source: 'ai' | 'mock'
   prompt: string
   consistency: number | null
   image_url: string
@@ -26,8 +28,11 @@ export type Design = {
   created_at: string
 }
 
-export type SegmentResult = { mask_id: string; overlay_url: string; coverage: number }
+/** Client-side selection: mask (1 = selected) + purple overlay for the canvas. */
+export type Selection = { mask: Uint8Array; overlayUrl: string; coverage: number }
 export type Point = { x: number; y: number; positive: boolean }
+
+export type AiStatus = { enabled: boolean; daily_limit: number; remaining: number }
 
 export type ActivityAction =
   | 'created' | 'reference' | 'generated' | 'edited' | 'exported' | 'published' | 'unpublished' | 'deleted'
@@ -50,6 +55,7 @@ export type PublicDesign = {
   image_url: string
   prompt: string
   kind: 'generate' | 'edit'
+  source: 'ai' | 'mock'
   character_name: string
   style: string
   author: string
@@ -57,5 +63,5 @@ export type PublicDesign = {
 }
 export type GalleryPage = { items: PublicDesign[]; next_before: number | null }
 
-// Keys must match STYLES in backend/app/services/ai.py
+// Keys must match STYLES in server/ai.ts
 export const STYLES = ['anime', 'pixel art', 'comic book', 'painterly', 'chibi', 'realistic concept art']

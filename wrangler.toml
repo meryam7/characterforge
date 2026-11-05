@@ -1,0 +1,21 @@
+# Cloudflare Pages project: static frontend (frontend/dist) + Pages Functions (functions/ → server/).
+# Deploy: npm run deploy      Local: npm run build && npm run dev   (http://localhost:8788)
+name = "characterforge"
+pages_build_output_dir = "frontend/dist"
+compatibility_date = "2025-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "characterforge"
+database_id = "4ee33c02-48a7-4f1b-afb0-ba4cfc578b7e"
+migrations_dir = "migrations"
+
+[ai]
+binding = "AI"
+
+[vars]
+AI_ENABLED = "true"
+AI_DAILY_LIMIT = "40"
+ADMIN_EMAILS = ""
+# Secret (not here): JWT_SECRET  →  npx wrangler pages secret put JWT_SECRET --project-name characterforge
+# Local dev reads secrets from .dev.vars (git-ignored), e.g.  JWT_SECRET=dev-secret

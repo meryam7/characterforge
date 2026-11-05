@@ -2,28 +2,25 @@
 
 Last verified 2026-11-05. Add new ones here instead of re-discovering them.
 
-## Fixed (2026-11-05), for context
-MOCK_AI embedding-dimension crash (auto re-embed) · masks never deleted (now per design, TTL 6h, removed after
-edit and on delete) · CWD-relative config (anchored to `backend/`) · no migrations (Alembic) · `utcnow`
-deprecation · `window.confirm` (`ConfirmButton`) · out-of-order segment responses (`segSeq`) · pseudo-auth
-(email+password JWT) · local-only storage (R2 backend) · download URL revoked too early · 945 KB landing bundle
-(lazy chunks).
+## Platform gotchas (important)
+1. **Free plan CPU is about 10 ms per request.** No image processing on the server. PBKDF2 at 100k iterations is the maximum and works in production.
+2. **Workers AI**: "nsfw" in negative_prompt makes the output black. DreamShaper img2img is also black. Blank outputs are rejected
+   (<8 KB). `env.AI.run` must be called as a method. AI doesn't work in local `wrangler pages dev`.
+3. **D1**: row ≤ 2 MB (uploads capped at 1.5 MB), ≤ 100 bound parameters, 5 GB free storage, 100k writes per day free.
+4. **R2 isn't enabled** (it needs a card). If it's enabled later, move `files` to R2: replace `prepareFile`/`deleteFiles`/`routes/files.ts`.
+5. **This dev machine**: git needs `http.sslBackend=schannel`. Node `fetch` to Cloudflare times out unless you pass
+   `--dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`. `*.r2.cloudflarestorage.com` is unreachable.
 
 ## Open
-1. **`/files` is public.** Anyone with an image URL can fetch it. Names are random 128-bit ids, so URLs can't be guessed. Use signed URLs if privacy matters more.
-2. **Mock-mode art in production.** The online version shows placeholder figures until a GPU backend exists (`AI_PIPELINE.md`).
-3. **Background removal** fails for characters touching the image border or wearing white connected to it (`EXPORT_GODOT.md`).
-4. **In-memory rate limiter and GPU lock**: per process only. Running several instances needs Redis and a job queue.
-5. **JWT in localStorage** is readable by any XSS. There's no `dangerouslySetInnerHTML` in the app, so keep it that way.
-   There's no password reset or email verification yet (needs an email provider).
-6. **Render free plan** sleeps after 15 minutes, giving about a 50s cold start. Neon free also suspends (about 1s wake).
-7. **Gallery moderation** is manual: admins unpublish via the API (`DELETE /api/designs/{id}/publish`). There's no admin UI yet.
-8. R2 is unreachable from the dev machine (TLS handshake blocked), so S3 code paths are only exercised on Render.
+- `/api/files/*` is public (unguessable 128-bit keys). Private images would need signed URLs.
+- The consistency score is a colour histogram (CLIP isn't available on Workers AI). It's a rough signal.
+- Rate limits and the AI quota are per user. A determined attacker could create many accounts (register is limited to 10/hour per IP).
+- There's no password reset or email verification (that needs an email service).
+- Gallery moderation is manual: admins (`ADMIN_EMAILS` var) call `DELETE /api/designs/:id/publish`. There's no admin UI.
+- The JWT in localStorage is readable by any XSS. Never use `dangerouslySetInnerHTML`.
+- Background removal is imperfect on AI images with shadows (see `EXPORT_GODOT.md`).
+- Konva/three chunks are large (about 210 KB gzipped). They load only in the studio.
 
-## Duplication to keep in sync
-`STYLES` (`ai.py` ↔ `types.ts`) · slug (`export.slug` ↔ `lib/format.ts`) · `CharacterLoader.gd`
-(`backend/app/assets/` ↔ `godot/`) · API types (`schemas.py` ↔ `types.ts` ↔ `api.ts`) · history actions
-(`services/history.ACTIONS` ↔ `types.ts ActivityAction` ↔ `HistoryView META`).
-
-## Environment mismatch
-Local Python 3.15 and Node 24, versus Docker/CI Python 3.11 and Node 20.
+## Keep in sync
+`STYLES` (`server/ai.ts` ↔ `frontend/src/lib/types.ts`) · output shapes (`server/db.ts` ↔ `types.ts`) · history actions
+(`db.ts ACTIONS` ↔ `types.ts ActivityAction` ↔ `HistoryView META`) · `slug` (`lib/format.ts`, used by exports).

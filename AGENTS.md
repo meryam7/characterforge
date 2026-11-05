@@ -2,15 +2,13 @@
 
 Instructions for AI coding agents (Codex, Cursor, Copilot, Claude, etc.) working on CharaForge.
 
-**The single source of truth is [`CLAUDE.md`](CLAUDE.md)**: file map, commands, conventions, and files you must not read.
-Area rules are in `backend/CLAUDE.md` and `frontend/CLAUDE.md`. Deep docs are in `docs/`.
+**The single source of truth is [`CLAUDE.md`](CLAUDE.md)**: file map, commands, rules, and files you must not read.
+Area guides are in `server/CLAUDE.md` and `frontend/CLAUDE.md`. Deep docs are in `docs/`.
 
 ## TL;DR
-- Product: AI character design studio (generate → select region → inpaint → export for games), with accounts,
-  a per-user history and a public community gallery.
-- Backend: FastAPI + SQLAlchemy + Alembic in `backend/app/`. AI is in `services/ai.py` (mock mode needs no GPU).
-- Frontend: React 18 + TS + Vite + Tailwind in `frontend/src/`. HTTP goes through `lib/api.ts` (Bearer token).
-- Deploy: root `Dockerfile` + `render.yaml` (Render) + Neon + Cloudflare R2. See `docs/DEPLOY.md`.
-- Skip `backend/.venv/`, `frontend/node_modules/`, `package-lock.json`, `dist/`, `storage/`, `*.db`, `.env`.
-- Verify: `cd backend; .venv\Scripts\python -m pytest -q` and `cd frontend; npx tsc --noEmit`.
-- Model change → Alembic migration. Schema change → mirror it in `types.ts` and `api.ts`. Every endpoint uses `current_user` + `get_owned*`.
+- AI character studio on the Cloudflare free tier: Pages (React SPA) + Pages Functions (Hono API in `server/`) + D1 (data and
+  images) + Workers AI (Stable Diffusion). Live at https://characterforge-3u3.pages.dev.
+- All image processing runs in the browser (`frontend/src/lib/engine/`). The server only does I/O, because of the ~10 ms CPU limit.
+- Verify: `npm run typecheck`, then `npm run build && npm run dev` and `npm run smoke`.
+- Schema changes go in a new `migrations/*.sql`. Output shapes in `server/db.ts` must match `frontend/src/lib/types.ts`.
+- Skip `node_modules/`, `package-lock.json`, `dist/`, `.wrangler/`, `.dev.vars`.

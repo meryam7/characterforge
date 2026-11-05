@@ -7,12 +7,11 @@ Already built into the app:
 - A public community gallery, so every shared design is social proof.
 
 ## Before you announce
-1. Deploy (`DEPLOY.md`) and use a custom domain if possible.
+1. The app is live at https://characterforge-3u3.pages.dev. A custom domain (`DEPLOY.md`) looks more trustworthy.
 2. Seed the community gallery with 15–30 good characters across all styles, from your own account.
 3. Paste your URL into https://www.opengraph.xyz to check the share preview.
-4. Move to Render Starter so first-time visitors don't wait through a cold start.
-5. Be upfront that the online version currently makes **preview-quality placeholder art** (mock mode). Pitch the
-   workflow (identity lock, click-to-edit, Godot/sprite export) until real AI is switched on (`AI_PIPELINE.md`).
+4. Watch the Workers AI daily allowance (Dashboard > AI). When it runs out, visitors get preview art until the next day. Lower `AI_DAILY_LIMIT` if many people sign up.
+5. Pitch the workflow (identity lock, click-to-edit, Godot/sprite export), not raw image quality (SD 1.5 class models).
 
 ## Where to post (game devs and artists)
 | Channel | Angle |
@@ -22,13 +21,13 @@ Already built into the app:
 | Product Hunt | launch on a Tuesday–Thursday with 4–5 screenshots and the GIF |
 | X / Bluesky / Mastodon (#gamedev #indiedev #godotengine) | short clips: select hair, recolour, export |
 | Discord: Godot, GDQuest, indie dev servers | in their #showcase channels, following each server's rules |
-| Hacker News "Show HN" | technical angle: identity lock via seed + IP-Adapter + CLIP scoring, SAM2 click-to-edit |
+| Hacker News "Show HN" | technical angle: a full AI app on the Cloudflare free tier (Pages + D1 + Workers AI), image processing in the browser to fit the 10 ms CPU limit |
 | YouTube Shorts / TikTok | 30-second "character to Godot sprite" speedrun |
 
 ## Measure
 Add privacy-friendly analytics (Plausible, Umami or Cloudflare Web Analytics) with a single `<script>` in
-`frontend/index.html`. Track sign-ups (`/api/auth/register` count in Neon) and the number of shared designs.
+`frontend/index.html`. Track sign-ups (`SELECT COUNT(*) FROM users` via `wrangler d1 execute characterforge --remote`) and the number of shared designs.
 
 ## Next features that drive sharing
 Public share links per design (`/#/d/<id>`), "remix this character" from the gallery, likes, an expression or pose sheet
-export, and real AI generation (biggest impact).
+export, and a higher-quality model once there's budget.

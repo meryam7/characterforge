@@ -1,11 +1,9 @@
 node_modules/
 dist/
-.venv/
-__pycache__/
-*.pyc
+.wrangler/
+.dev.vars
 .env
-*.db
-backend/storage/
+*.log
 .DS_Store
 .vscode/*.local
 .claude/settings.local.json

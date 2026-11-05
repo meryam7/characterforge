@@ -1,8 +1,5 @@
-import type {
-  AuthResult, Character, Design, GalleryPage, HistoryPage, Point, SegmentResult, User,
-} from './types'
+import type { AiStatus, AuthResult, Character, Design, GalleryPage, HistoryPage, User } from './types'
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
 const TOKEN_KEY = 'charaforge_token'
 
 let token: string | null = (() => {
@@ -31,42 +28,51 @@ export const auth = {
 /** Fired when the server rejects the token, so the app can return to the login screen. */
 export const LOGGED_OUT_EVENT = 'charaforge:logged-out'
 
-export const fileUrl = (path: string | null | undefined) =>
-  path ? (path.startsWith('http') ? path : `${BASE}${path}`) : ''
+/** API image URLs are same-origin paths (/api/files/...). */
+export const fileUrl = (path: string | null | undefined) => path ?? ''
+
+/** Error with the HTTP status and the JSON body (e.g. {detail, fallback}). */
+export class ApiError extends Error {
+  constructor(public status: number, message: string, public data: Record<string, unknown> = {}) {
+    super(message)
+  }
+}
 
 async function raw(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers)
   if (token) headers.set('Authorization', `Bearer ${token}`)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
-  const res = await fetch(`${BASE}${path}`, { ...init, headers })
+  let res: Response
+  try {
+    res = await fetch(path, { ...init, headers })
+  } catch {
+    throw new ApiError(0, 'Network error - check your connection')
+  }
   if (!res.ok) {
     if (res.status === 401 && token && !path.startsWith('/api/auth/login')) {
       auth.set(null)
       window.dispatchEvent(new Event(LOGGED_OUT_EVENT))
     }
-    let msg = res.statusText
+    let data: Record<string, unknown> = {}
     try {
-      const j = await res.json()
-      msg = typeof j.detail === 'string' ? j.detail : friendlyValidation(j.detail)
+      data = await res.json()
     } catch {
-      /* ignore */
+      /* not JSON */
     }
-    throw new Error(msg || `Request failed (${res.status})`)
+    const msg = typeof data.detail === 'string' ? data.detail : res.statusText || `Request failed (${res.status})`
+    throw new ApiError(res.status, msg, data)
   }
   return res
 }
 
-function friendlyValidation(detail: unknown): string {
-  if (Array.isArray(detail) && detail.length) {
-    const d = detail[0] as { loc?: unknown[]; msg?: string }
-    const field = d.loc?.[d.loc.length - 1]
-    return field ? `${String(field).replace('_', ' ')}: ${d.msg}` : (d.msg ?? 'Invalid input')
-  }
-  return JSON.stringify(detail)
-}
-
 const json = async <T,>(path: string, init?: RequestInit) => (await raw(path, init)).json() as Promise<T>
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
+
+async function image(path: string, body: unknown) {
+  const res = await raw(path, post(body))
+  const left = res.headers.get('X-AI-Remaining')
+  return { blob: await res.blob(), remaining: left === null ? null : Number(left) }
+}
 
 export const api = {
   // auth
@@ -76,46 +82,29 @@ export const api = {
   me: () => json<User>('/api/auth/me'),
   deleteAccount: () => json<{ ok: boolean }>('/api/auth/me', { method: 'DELETE' }),
 
-  // characters + studio
+  // characters + designs (images are produced in the browser, see lib/engine)
   listCharacters: () => json<Character[]>('/api/characters'),
   createCharacter: (data: { name: string; description: string; style: string }) =>
     json<Character>('/api/characters', post(data)),
   deleteCharacter: (id: number) => json<{ ok: boolean }>(`/api/characters/${id}`, { method: 'DELETE' }),
-  uploadReference: (id: number, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    return json<Character>(`/api/characters/${id}/reference`, { method: 'POST', body: form })
-  },
+  uploadReference: (id: number, form: FormData) =>
+    json<Character>(`/api/characters/${id}/reference`, { method: 'POST', body: form }),
   listDesigns: (id: number) => json<Design[]>(`/api/characters/${id}/designs`),
-  generate: (id: number, prompt: string, lock_identity: boolean) =>
-    json<Design>(`/api/characters/${id}/generate`, post({ prompt, lock_identity })),
-  segment: (designId: number, points: Point[]) =>
-    json<SegmentResult>(`/api/designs/${designId}/segment`, post({ points })),
-  edit: (designId: number, mask_id: string, prompt: string) =>
-    json<Design>(`/api/designs/${designId}/edit`, post({ mask_id, prompt })),
+  uploadDesign: (id: number, form: FormData) => json<Design>(`/api/characters/${id}/designs`, { method: 'POST', body: form }),
+  logExport: (id: number, detail: string, design_id?: number) =>
+    json<{ ok: boolean }>(`/api/characters/${id}/exported`, post({ detail, design_id })),
+
+  // Workers AI (PNG bytes back; ApiError.data.fallback === true means "use preview art")
+  aiStatus: () => json<AiStatus>('/api/ai/status'),
+  aiGenerate: (character_id: number, prompt: string, anchor_b64: string | null) =>
+    image('/api/ai/generate', { character_id, prompt, anchor_b64 }),
+  aiInpaint: (design_id: number, prompt: string, image_b64: string, mask: number[]) =>
+    image('/api/ai/inpaint', { design_id, prompt, image_b64, mask }),
 
   // history + community
-  history: (before?: number | null, characterId?: number | null) => {
-    const q = new URLSearchParams({ limit: '30' })
-    if (before) q.set('before', String(before))
-    if (characterId) q.set('character_id', String(characterId))
-    return json<HistoryPage>(`/api/history?${q}`)
-  },
+  history: (before?: number | null) => json<HistoryPage>(`/api/history?limit=30${before ? `&before=${before}` : ''}`),
   clearHistory: () => json<{ ok: boolean }>('/api/history', { method: 'DELETE' }),
   gallery: (before?: number | null) => json<GalleryPage>(`/api/gallery${before ? `?before=${before}` : ''}`),
   publish: (designId: number) => json<Design>(`/api/designs/${designId}/publish`, { method: 'POST' }),
   unpublish: (designId: number) => json<{ ok: boolean }>(`/api/designs/${designId}/publish`, { method: 'DELETE' }),
-
-  // files
-  blob: async (path: string) => (await raw(path)).blob(),
-  download: async (path: string, filename: string) => {
-    const url = URL.createObjectURL(await (await raw(path)).blob())
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 10_000) // revoking immediately breaks some browsers
-  },
 }

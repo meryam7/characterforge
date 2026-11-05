@@ -1,73 +1,53 @@
 # CharaForge - AI character design studio
 
-Text + reference image -> consistent characters -> edit any part -> export for games/comics/animation.
+**Live: https://characterforge-3u3.pages.dev**
+
+Describe a character (and optionally upload a reference picture), generate consistent designs with real AI, click any
+part to repaint it, and export for games, comics or animation (PNG, transparent PNG, sprite sheet, Godot 4 pack).
 Accounts, a personal history of everything you create, and a public community gallery.
 
+Runs entirely on the **Cloudflare free tier**: Pages (website) + Pages Functions (API) + D1 (database and images) + Workers AI
+(Stable Diffusion). If the daily AI allowance runs out, the app keeps working with procedural preview art.
+
 Developer and AI-agent docs: [`CLAUDE.md`](CLAUDE.md) (start here), [`AGENTS.md`](AGENTS.md), [`docs/`](docs/).
-**Put it online:** [`docs/DEPLOY.md`](docs/DEPLOY.md) · **Promote it:** [`docs/LAUNCH.md`](docs/LAUNCH.md)
+Deploying: [`docs/DEPLOY.md`](docs/DEPLOY.md) · Promotion: [`docs/LAUNCH.md`](docs/LAUNCH.md)
 
 ```
-charaforge/
-├─ backend/                 FastAPI + SQLAlchemy + Alembic (+ optional PyTorch/Diffusers/SAM2/CLIP)
-│  ├─ app/main.py           API entry, /files, serves the built frontend
-│  ├─ app/routers/          auth, characters, studio, history, community
-│  ├─ app/services/         ai (all deep learning + mock), export, storage (disk / R2), history
-│  ├─ migrations/           Alembic (applied automatically at startup)
-│  └─ tests/                pytest
-├─ frontend/                React + TypeScript + Tailwind + Konva + three.js
-├─ godot/CharacterLoader.gd
-├─ Dockerfile               one image: frontend build + API
-├─ render.yaml              Render blueprint (deploy)
-└─ docker-compose.yml       local production-like run (app + Postgres)
+characterforge/
+├─ frontend/            React + TypeScript + Tailwind + Konva + three.js (static site)
+│  └─ src/lib/engine/   in-browser image engine: selection, compositing, exports, preview art
+├─ server/              Hono API (auth, characters, designs, history, gallery, Workers AI proxy, files)
+├─ functions/api/       Cloudflare Pages Function entry -> server/
+├─ migrations/          D1 schema (SQL)
+├─ scripts/smoke.mjs    end-to-end API test
+└─ wrangler.toml        Cloudflare config (D1 + AI bindings)
 ```
 
-## 0. Install once
-Git, Node.js 20 LTS, Python 3.11+ (tick "Add to PATH" on Windows), VS Code. Docker Desktop is optional.
-
-## 1. Backend (terminal 1)
-Windows:
+## Run locally
+Needs Node.js 20+ and Git.
 ```
-cd backend
-py -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements-dev.txt
-copy .env.example .env
-uvicorn app.main:app --reload --port 8000
-```
-macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt && cp .env.example .env`
-
-Check http://localhost:8000/api/health and http://localhost:8000/docs. The database tables are created automatically.
-Run the tests with `python -m pytest -q`.
-
-## 2. Frontend (terminal 2)
-```
-cd frontend
 npm install
-npm run dev
+npm --prefix frontend install
+echo JWT_SECRET=local-dev-secret > .dev.vars
+npm run db:migrate:local
+npm run build
+npm run dev            # http://127.0.0.1:8788
 ```
-Open http://localhost:5173, sign up, create a character, click Generate, then "Select a region", click the hair,
-type "bright red hair" and Apply. Open **History** to see everything you did, and **Community** to see shared designs
-(use "Share to community" in the Export panel to share yours).
-In mock mode the images are procedural placeholders, but every feature really works.
+Optional hot reload: `npm run dev:web` (http://localhost:5173). Locally, AI falls back to preview art because Workers AI
+only runs in the deployed app. API test: `npm run smoke`.
 
-## 3. Real AI (optional, GPU)
-NVIDIA GPU with 8 GB+ VRAM. Install PyTorch with CUDA from https://pytorch.org, run `pip install -r requirements-ai.txt`,
-set `MOCK_AI=false` in `.env` and restart. The first request downloads several GB of models. Details: `docs/AI_PIPELINE.md`.
+## Deploy
+```
+npx wrangler login
+npm run db:migrate:remote
+npm run deploy
+```
+Pushes to `main` deploy automatically once the GitHub secrets from [`docs/DEPLOY.md`](docs/DEPLOY.md) are set.
 
-How identity is preserved: (1) one seed per character, (2) the description is in every prompt, (3) IP-Adapter
-conditions on the reference or first design, (4) CLIP scores each design (the % badge), (5) edits use masks plus
-inpainting, so only the selected pixels change.
+## Godot
+Click "Godot pack", unzip into `res://characters/hero/`, add a Node2D, attach `CharacterLoader.gd`, set `character_json`,
+and run. Enter/Space cycles through the designs.
 
-## 4. Godot (optional)
-Click "Godot pack" in the app, unzip into `res://characters/hero/`, add a Node2D, attach `CharacterLoader.gd`, set
-`character_json`, and run. Enter/Space cycles through the designs.
-
-## 5. Deploy online
-Render (app) + Neon (Postgres) + Cloudflare R2 (images), all on free tiers. Step by step: [`docs/DEPLOY.md`](docs/DEPLOY.md).
-Production-like test locally: `docker compose up --build`, then open http://localhost:8000.
-
-## Troubleshooting
-- `npm install` peer errors: use Node 20 and don't upgrade React to 19 (react-konva 18 is pinned).
-- 401 errors: log in again (tokens last 30 days).
-- Changed `models.py`? Create a migration: `python -m alembic revision --autogenerate -m "what changed"` (in `backend/`).
-- CUDA out of memory: close other GPU apps, or lower `W, H` in `services/ai.py`.
+## How identity is preserved
+One seed per character, the description in every prompt, the reference (or first design) used as an anchor image for
+each new variation, a consistency score per design (the % badge), and edits that change only the pixels you selected.

@@ -1,8 +1,8 @@
 ---
-description: Run all CharaForge verification (backend import smoke test, frontend typecheck, tests if present)
+description: Run CharaForge verification (typecheck, build, API smoke test if a local server is up)
 ---
-Run these from the repo root and report pass/fail with the relevant output only:
-1. `cd backend; .venv\Scripts\python -c "import app.main; print('backend OK')"`
-2. `cd frontend; npx tsc --noEmit`
-3. If `backend/tests/` exists: `cd backend; .venv\Scripts\python -m pytest -q`
+Run from the repo root and report pass/fail with only the relevant output:
+1. `npm run typecheck`
+2. `npm run build`
+3. If http://127.0.0.1:8788/api/health answers: `npm run smoke`
 Don't fix anything unless asked. Summarise failures as `file:line` and the error.
