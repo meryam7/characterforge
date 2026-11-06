@@ -22,7 +22,7 @@ jobs:
         id: gate
         run: echo "ok=$([ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$BACKUP_PASSPHRASE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - if: steps.gate.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - if: steps.gate.outputs.ok == 'true'
         uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
