@@ -1,11 +1,17 @@
-/** Cloudflare bindings (wrangler.toml) and per-request variables. */
+/** Cloudflare bindings (wrangler.toml), secrets (Pages encrypted secrets) and per-request variables.
+ * Secrets live ONLY here, on the server. They are never sent to the browser or written to logs. */
 export type Env = {
   DB: D1Database
   AI: Ai
-  JWT_SECRET: string // secret: wrangler pages secret put JWT_SECRET
-  ADMIN_EMAILS: string // comma-separated, may remove any community post
-  AI_DAILY_LIMIT: string // AI images per user per day
-  AI_ENABLED: string // "true" | "false"
+  // --- secrets (wrangler pages secret put NAME --project-name characterforge [--env preview]) ---
+  MFA_ENCRYPTION_KEY: string // base64, 32 bytes: encrypts TOTP secrets at rest (AES-256-GCM)
+  LOG_HASH_SALT: string // pseudonymises IPs/emails in logs
+  ALERT_WEBHOOK_URL?: string // optional Discord/Slack webhook for security alerts
+  // --- plain vars (wrangler.toml) ---
+  ENVIRONMENT: string // production | staging | development
+  ADMIN_EMAILS: string // comma-separated; admins must use MFA
+  AI_DAILY_LIMIT: string
+  AI_ENABLED: string
 }
 
 export type UserRow = {
@@ -13,8 +19,14 @@ export type UserRow = {
   email: string
   display_name: string
   password_hash: string
+  mfa_secret: string | null
+  mfa_enabled: number
+  mfa_last_step: number
+  password_changed_at: string | null
   created_at: string
 }
+
+export type SessionInfo = { idHash: string; mfa: boolean; expiresAt: number }
 
 export type CharacterRow = {
   id: number
@@ -54,4 +66,11 @@ export type ActivityRow = {
   created_at: string
 }
 
-export type AppEnv = { Bindings: Env; Variables: { user: UserRow } }
+export type Vars = {
+  user: UserRow // set by authenticate when a valid session cookie is present
+  session: SessionInfo
+  requestId: string
+  ipHash: string
+}
+
+export type AppEnv = { Bindings: Env; Variables: Vars }

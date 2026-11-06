@@ -50,14 +50,14 @@ r.post('/', async (c) => {
 })
 
 r.get('/:id{[0-9]+}', async (c) => {
-  const ch = await ownedCharacter(c.env.DB, c.get('user').id, Number(c.req.param('id')))
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
   return c.json(characterOut(ch, await characterStats(c.env.DB, ch.id)))
 })
 
 r.delete('/:id{[0-9]+}', async (c) => {
   const uid = c.get('user').id
   const db = c.env.DB
-  const ch = await ownedCharacter(db, uid, Number(c.req.param('id')))
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
   const { results: designs } = await db.prepare('SELECT image_key FROM designs WHERE character_id = ?').bind(ch.id).all<{ image_key: string }>()
   // the history entry reuses the character's latest history thumbnail (history thumbnails are kept)
   const lastThumb = await db
@@ -77,7 +77,7 @@ r.delete('/:id{[0-9]+}', async (c) => {
 r.post('/:id{[0-9]+}/reference', async (c) => {
   const uid = c.get('user').id
   const db = c.env.DB
-  const ch = await ownedCharacter(db, uid, Number(c.req.param('id')))
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
   const form = await c.req.formData()
   const image = await prepareFile(db, uid, 'r', form.get('image'))
   const thumb = await prepareFile(db, uid, 't', form.get('thumb'))
@@ -89,12 +89,12 @@ r.post('/:id{[0-9]+}/reference', async (c) => {
     db.prepare('UPDATE characters SET reference_key = ?, embedding = ? WHERE id = ?').bind(image.key, embedding, ch.id),
     recordActivity(db, uid, 'reference', ch, { detail: 'reference image uploaded', thumbKey: thumb.key }),
   ])
-  const updated = await ownedCharacter(db, uid, ch.id)
+  const updated = await ownedCharacter(c, ch.id)
   return c.json(characterOut(updated, await characterStats(db, ch.id)))
 })
 
 r.get('/:id{[0-9]+}/designs', async (c) => {
-  const ch = await ownedCharacter(c.env.DB, c.get('user').id, Number(c.req.param('id')))
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
   const { results } = await c.env.DB.prepare('SELECT * FROM designs WHERE character_id = ? ORDER BY id').bind(ch.id).all<DesignRow>()
   return c.json(results.map(designOut))
 })
@@ -104,8 +104,8 @@ r.get('/:id{[0-9]+}/designs', async (c) => {
 r.post('/:id{[0-9]+}/designs', async (c) => {
   const uid = c.get('user').id
   const db = c.env.DB
-  const ch = await ownedCharacter(db, uid, Number(c.req.param('id')))
-  await rateLimit(db, `design:${uid}`, 60, 60)
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
+  await rateLimit(c, `design:${uid}`, 60, 60)
   const form = await c.req.formData()
   const kind = str(form.get('kind'), 'kind', { pattern: /^(generate|edit)$/ }) as 'generate' | 'edit'
   const source = str(form.get('source'), 'source', { pattern: /^(ai|mock)$/ })
@@ -143,7 +143,7 @@ r.post('/:id{[0-9]+}/designs', async (c) => {
 /** The browser builds exports itself; this only records them in the history. body: {detail, design_id?} */
 r.post('/:id{[0-9]+}/exported', async (c) => {
   const uid = c.get('user').id
-  const ch = await ownedCharacter(c.env.DB, uid, Number(c.req.param('id')))
+  const ch = await ownedCharacter(c, Number(c.req.param('id')))
   const body = await jsonBody(c.req.raw)
   const detail = str(body.detail, 'detail', { max: 100 })
   const designId = int(body.design_id, 'design_id', true)

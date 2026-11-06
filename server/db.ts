@@ -1,17 +1,25 @@
-/** Data access helpers shared by routes: ownership checks, files, history, rate limits, output shapes. */
-import type { ActivityRow, CharacterRow, DesignRow, Env } from './env'
+/** Data access helpers shared by routes: ownership checks, files, history, rate limits, output shapes.
+ * ALL SQL uses bound parameters (?). The only interpolations are placeholder lists ('?,?,?') and constant
+ * column/clause names - never user input. `npm run check:security` enforces this. */
+import type { Context } from 'hono'
+import type { ActivityRow, AppEnv, CharacterRow, DesignRow, Env } from './env'
 import { fail, now } from './http'
+import { logEvent } from './security-log'
 
-// ------------------------------------------------------------------ ownership
-export async function ownedCharacter(db: D1Database, userId: number, id: number): Promise<CharacterRow> {
-  const ch = await db.prepare('SELECT * FROM characters WHERE id = ? AND user_id = ?').bind(id, userId).first<CharacterRow>()
-  return ch ?? fail(404, 'Character not found')
+// ------------------------------------------------------------------ ownership (object-level authorization)
+/** The character if it belongs to the logged-in user; 404 otherwise. Attempts on someone else's row are logged. */
+export async function ownedCharacter(c: Context<AppEnv>, id: number): Promise<CharacterRow> {
+  const uid = c.get('user').id
+  const ch = await c.env.DB.prepare('SELECT * FROM characters WHERE id = ?').bind(id).first<CharacterRow>()
+  if (ch && ch.user_id === uid) return ch
+  if (ch) await logEvent(c, 'access_denied', 'warn', { detail: { resource: 'character', id } })
+  return fail(404, 'Character not found')
 }
 
-export async function ownedDesign(db: D1Database, userId: number, id: number): Promise<{ design: DesignRow; character: CharacterRow }> {
-  const design = await db.prepare('SELECT * FROM designs WHERE id = ?').bind(id).first<DesignRow>()
+export async function ownedDesign(c: Context<AppEnv>, id: number): Promise<{ design: DesignRow; character: CharacterRow }> {
+  const design = await c.env.DB.prepare('SELECT * FROM designs WHERE id = ?').bind(id).first<DesignRow>()
   if (!design) return fail(404, 'Design not found')
-  return { design, character: await ownedCharacter(db, userId, design.character_id) }
+  return { design, character: await ownedCharacter(c, design.character_id) }
 }
 
 // ------------------------------------------------------------------ files (images stored in D1)
@@ -56,7 +64,9 @@ export function recordActivity(
 }
 
 // ------------------------------------------------------------------ rate limiting (fixed window, stored in D1)
-export async function rateLimit(db: D1Database, key: string, max: number, windowSec: number): Promise<void> {
+/** Durable limiter for sensitive operations (login, register, MFA, AI, uploads). Logs (deduplicated) when it trips. */
+export async function rateLimit(c: Context<AppEnv>, key: string, max: number, windowSec: number): Promise<void> {
+  const db = c.env.DB
   const nowSec = Math.floor(Date.now() / 1000)
   const row = await db
     .prepare(
@@ -68,10 +78,12 @@ export async function rateLimit(db: D1Database, key: string, max: number, window
     )
     .bind(key, nowSec, windowSec)
     .first<{ count: number }>()
-  if (row && row.count > max) fail(429, 'Too many requests - slow down and try again in a minute')
+  if (row && row.count > max) {
+    const { logRateLimited } = await import('./middleware')
+    await logRateLimited(c, key)
+    fail(429, 'Too many requests - slow down and try again in a minute')
+  }
 }
-
-export const clientIp = (req: Request) => req.headers.get('cf-connecting-ip') ?? 'local'
 
 export const isAdmin = (env: Env, email: string) =>
   env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase())

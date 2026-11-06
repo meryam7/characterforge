@@ -8,9 +8,15 @@
     "build": "npm --prefix frontend run build",
     "typecheck": "tsc -p server && tsc -p frontend",
     "db:migrate:local": "wrangler d1 migrations apply characterforge --local",
-    "db:migrate:remote": "wrangler d1 migrations apply characterforge --remote",
-    "deploy": "npm run build && wrangler pages deploy",
-    "smoke": "node scripts/smoke.mjs"
+    "db:migrate:remote": "wrangler d1 migrations apply characterforge --remote --env production",
+    "smoke": "node scripts/smoke.mjs",
+    "test:security": "node scripts/security-test.mjs",
+    "check:security": "node scripts/check-security.mjs",
+    "audit": "npm audit --audit-level=high && npm --prefix frontend audit --audit-level=high",
+    "deploy:staging": "npm --prefix frontend run build -- --mode staging && npm run check:security && wrangler d1 migrations apply characterforge-staging --remote --env preview && wrangler pages deploy --project-name characterforge --branch staging",
+    "deploy:production": "npm run build && npm run check:security && wrangler d1 migrations apply characterforge --remote --env production && wrangler pages deploy --project-name characterforge --branch main",
+    "backup": "node scripts/backup.mjs",
+    "restore:test": "node scripts/restore-test.mjs"
   },
   "dependencies": {
     "hono": "^4.13.16"

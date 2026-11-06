@@ -22,9 +22,10 @@ type Props = {
   refresh: () => Promise<Character[]>
   run: Run
   newCharacterSignal: number
+  consumeNewCharacter: () => void
 }
 
-export default function Studio({ characters, charId, setCharId, refresh, run, newCharacterSignal }: Props) {
+export default function Studio({ characters, charId, setCharId, refresh, run, newCharacterSignal, consumeNewCharacter }: Props) {
   const [designs, setDesigns] = useState<Design[]>([])
   const [designId, setDesignId] = useState<number | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -41,9 +42,13 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
   const design = designs.find((d) => d.id === designId) ?? null
   const useAi = !!ai?.enabled && ai.remaining > 0
 
+  // "New character" in the sidebar: open the dialog once, then clear the request (so it can't reopen on remount)
   useEffect(() => {
-    if (newCharacterSignal > 0) setShowModal(true)
-  }, [newCharacterSignal])
+    if (newCharacterSignal > 0) {
+      setShowModal(true)
+      consumeNewCharacter()
+    }
+  }, [newCharacterSignal, consumeNewCharacter])
 
   useEffect(() => {
     api.aiStatus().then(setAi).catch(() => setAi(null))

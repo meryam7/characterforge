@@ -1,7 +1,5 @@
-/** Password hashing (PBKDF2-SHA256 via Web Crypto) and login tokens (HS256 JWT). */
-import { sign, verify } from 'hono/jwt'
-
-const ITERATIONS = 100_000 // Workers' Web Crypto maximum for PBKDF2
+/** Password hashing: PBKDF2-SHA256 via Web Crypto (100k iterations = Workers' maximum). */
+const ITERATIONS = 100_000
 const enc = new TextEncoder()
 
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes))
@@ -18,6 +16,9 @@ export async function hashPassword(password: string): Promise<string> {
   return `pbkdf2$${ITERATIONS}$${b64(salt)}$${b64(await derive(password, salt, ITERATIONS))}`
 }
 
+/** Used when the email doesn't exist, so response time doesn't reveal which accounts exist. */
+export const DUMMY_HASH = 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [algo, iter, salt, hash] = stored.split('$')
   if (algo !== 'pbkdf2' || !iter || !salt || !hash) return false
@@ -29,19 +30,15 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return diff === 0
 }
 
-const TOKEN_DAYS = 30
+const COMMON = new Set([
+  'password', 'password1', 'password123', '12345678', '123456789', '1234567890', 'qwertyuiop', 'qwerty123',
+  'iloveyou', 'abcdefgh', 'abc12345', '11111111', '00000000', 'azertyuiop', 'motdepasse', 'letmein123', 'welcome1',
+])
 
-export async function createToken(userId: number, secret: string): Promise<string> {
-  const iat = Math.floor(Date.now() / 1000)
-  return sign({ sub: String(userId), iat, exp: iat + TOKEN_DAYS * 86400 }, secret, 'HS256')
-}
-
-export async function readToken(token: string, secret: string): Promise<number | null> {
-  try {
-    const payload = await verify(token, secret, 'HS256')
-    const id = Number(payload.sub)
-    return Number.isSafeInteger(id) ? id : null
-  } catch {
-    return null
-  }
+/** Returns an error message, or null if the password is acceptable. */
+export function passwordProblem(password: unknown, email: string): string | null {
+  if (typeof password !== 'string' || password.length < 10 || password.length > 128) return 'password: 10 to 128 characters'
+  if (COMMON.has(password.toLowerCase())) return 'password: too common, choose another one'
+  if (password.toLowerCase() === email.toLowerCase()) return 'password: must not be your email'
+  return null
 }

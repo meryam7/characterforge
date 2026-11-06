@@ -1,4 +1,4 @@
-import { Globe2, History, LogOut, Palette, Plus, Trash2, UserX } from 'lucide-react'
+import { Globe2, History, LogOut, Palette, Plus, Settings, ShieldAlert, Trash2 } from 'lucide-react'
 import type { View } from '../App'
 import { fileUrl } from '../lib/api'
 import type { Character, User } from '../lib/types'
@@ -14,13 +14,14 @@ type Props = {
   onNew: () => void
   onDelete: (id: number) => void
   onLogout: () => void
-  onDeleteAccount: () => void
 }
 
-const NAV: { id: View; label: string; icon: typeof Palette }[] = [
+const NAV: { id: View; label: string; icon: typeof Palette; admin?: boolean }[] = [
   { id: 'studio', label: 'Studio', icon: Palette },
   { id: 'history', label: 'History', icon: History },
   { id: 'gallery', label: 'Community', icon: Globe2 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'security', label: 'Security', icon: ShieldAlert, admin: true },
 ]
 
 export default function Sidebar(p: Props) {
@@ -33,8 +34,8 @@ export default function Sidebar(p: Props) {
         <p className="mt-1 text-xs text-violet-300/70">Design characters that stay themselves.</p>
       </div>
 
-      <nav className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1" aria-label="Main">
-        {NAV.map(({ id, label, icon: Icon }) => (
+      <nav className={`grid gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 ${p.user.is_admin ? 'grid-cols-5' : 'grid-cols-4'}`} aria-label="Main">
+        {NAV.filter((n) => !n.admin || p.user.is_admin).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => p.setView(id)}
@@ -101,13 +102,6 @@ export default function Sidebar(p: Props) {
           <button className="btn-ghost px-3 py-1.5 text-xs" onClick={p.onLogout}>
             <LogOut size={13} /> Log out
           </button>
-          <ConfirmButton
-            question="Delete account and all data?"
-            onConfirm={p.onDeleteAccount}
-            className="btn-ghost px-3 py-1.5 text-xs text-red-300/80"
-          >
-            <UserX size={13} /> Delete account
-          </ConfirmButton>
         </div>
       </div>
     </aside>

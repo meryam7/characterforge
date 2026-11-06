@@ -11,7 +11,7 @@ const FEATURES = [
   { icon: Download, title: 'Game-ready exports', text: 'Transparent PNGs, sprite sheets with an atlas, and a drop-in Godot 4 pack.' },
 ]
 
-type Props = { onAuthed: (u: User, token: string) => void; run: Run; banner: ReactNode }
+type Props = { onAuthed: (u: User) => void; run: Run; banner: ReactNode }
 
 export default function Landing({ onAuthed, run, banner }: Props) {
   return (

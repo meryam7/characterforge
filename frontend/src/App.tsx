@@ -3,24 +3,27 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import CommunityGallery from './components/CommunityGallery'
 import HistoryView from './components/HistoryView'
 import Landing from './components/Landing'
+import SettingsView from './components/SettingsView'
 import Sidebar from './components/Sidebar'
+import { api, LOGGED_OUT_EVENT, markLoggedIn } from './lib/api'
+import type { Character, User } from './lib/types'
 
 // Konva + three.js are heavy: keep them out of the landing page bundle.
 const Studio = lazy(() => import('./components/Studio'))
-import { api, auth, LOGGED_OUT_EVENT } from './lib/api'
-import type { Character, User } from './lib/types'
+const SecurityView = lazy(() => import('./components/SecurityView'))
 
-export type View = 'studio' | 'history' | 'gallery'
+export type View = 'studio' | 'history' | 'gallery' | 'settings' | 'security'
 export type Run = <T>(label: string, fn: () => Promise<T>) => Promise<T | undefined>
 
+const VIEWS: View[] = ['studio', 'history', 'gallery', 'settings', 'security']
 const readView = (): View => {
-  const v = window.location.hash.replace(/^#\/?/, '')
-  return v === 'history' || v === 'gallery' ? v : 'studio'
+  const v = window.location.hash.replace(/^#\/?/, '') as View
+  return VIEWS.includes(v) ? v : 'studio'
 }
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null)
-  const [checking, setChecking] = useState(Boolean(auth.token))
+  const [checking, setChecking] = useState(true)
   const [view, setViewState] = useState<View>(readView)
   const [characters, setCharacters] = useState<Character[]>([])
   const [charId, setCharId] = useState<number | null>(null)
@@ -45,25 +48,33 @@ export default function App() {
     setViewState(v)
   }
 
-  useEffect(() => {
-    const onHash = () => setViewState(readView())
-    const onLogout = () => {
-      setUser(null)
-      setCharacters([])
-      setCharId(null)
-    }
-    window.addEventListener('hashchange', onHash)
-    window.addEventListener(LOGGED_OUT_EVENT, onLogout)
-    return () => {
-      window.removeEventListener('hashchange', onHash)
-      window.removeEventListener(LOGGED_OUT_EVENT, onLogout)
-    }
+  const resetSession = useCallback(() => {
+    markLoggedIn(false)
+    setUser(null)
+    setCharacters([])
+    setCharId(null)
+    setNewCharacterSignal(0)
   }, [])
 
-  // restore session
   useEffect(() => {
-    if (!auth.token) return
-    api.me().then(setUser).catch(() => auth.set(null)).finally(() => setChecking(false))
+    const onHash = () => setViewState(readView())
+    window.addEventListener('hashchange', onHash)
+    window.addEventListener(LOGGED_OUT_EVENT, resetSession)
+    return () => {
+      window.removeEventListener('hashchange', onHash)
+      window.removeEventListener(LOGGED_OUT_EVENT, resetSession)
+    }
+  }, [resetSession])
+
+  // restore the session from the HttpOnly cookie
+  useEffect(() => {
+    api.me()
+      .then((u) => {
+        markLoggedIn(true)
+        setUser(u)
+      })
+      .catch(() => setUser(null))
+      .finally(() => setChecking(false))
   }, [])
 
   const refresh = useCallback(async () => {
@@ -74,25 +85,19 @@ export default function App() {
 
   useEffect(() => {
     if (user) run('Loading your characters', refresh)
-  }, [user, run, refresh])
+  }, [user?.id, run, refresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onAuthed = (u: User, token: string) => {
-    auth.set(token)
+  const onAuthed = (u: User) => {
+    markLoggedIn(true)
     setError(null)
     setUser(u)
     setView('studio')
   }
 
-  const logout = () => {
-    auth.set(null)
-    window.dispatchEvent(new Event(LOGGED_OUT_EVENT))
-  }
-
-  const deleteAccount = () =>
-    run('Deleting account', async () => {
-      await api.deleteAccount()
-      logout()
-    })
+  const logout = () => run('Logging out', async () => {
+    await api.logout().catch(() => undefined)
+    resetSession()
+  })
 
   const handleDeleteCharacter = (id: number) =>
     run('Deleting', async () => {
@@ -136,6 +141,8 @@ export default function App() {
     )
   }
 
+  const spinner = <Loader2 className="m-auto animate-spin text-violet-300" />
+
   return (
     <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
       <Sidebar
@@ -151,25 +158,23 @@ export default function App() {
         }}
         onDelete={handleDeleteCharacter}
         onLogout={logout}
-        onDeleteAccount={deleteAccount}
       />
 
       <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 lg:overflow-y-auto lg:p-6">
         {banner}
         {view === 'studio' && (
-          <Suspense fallback={<Loader2 className="m-auto animate-spin text-violet-300" />}>
-            <Studio
-              characters={characters}
-              charId={charId}
-              setCharId={setCharId}
-              refresh={refresh}
-              run={run}
-              newCharacterSignal={newCharacterSignal}
-            />
+          <Suspense fallback={spinner}>
+            <Studio characters={characters} charId={charId} setCharId={setCharId} refresh={refresh} run={run} newCharacterSignal={newCharacterSignal} consumeNewCharacter={() => setNewCharacterSignal(0)} />
           </Suspense>
         )}
         {view === 'history' && <HistoryView run={run} onOpenCharacter={openCharacter} />}
         {view === 'gallery' && <CommunityGallery run={run} />}
+        {view === 'settings' && <SettingsView user={user} setUser={setUser} run={run} onLoggedOut={resetSession} />}
+        {view === 'security' && user.is_admin && (
+          <Suspense fallback={spinner}>
+            <SecurityView run={run} />
+          </Suspense>
+        )}
       </main>
 
       {toast}

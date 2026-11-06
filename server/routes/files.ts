@@ -1,29 +1,37 @@
-/** Public image endpoint: /api/files/<key>. Keys are random 128-bit ids and never change, so responses are
- * cached forever in the browser and at Cloudflare's edge (saves D1 reads). */
+/** Images: /api/files/<key>. Served only to the owner, or to anyone if the image belongs to a design shared in
+ * the community gallery. Private images are never cached by shared caches. */
 import { Hono } from 'hono'
 import { KEY } from '../db'
 import type { AppEnv } from '../env'
 
 const r = new Hono<AppEnv>()
 
+const notFound = () => new Response(JSON.stringify({ detail: 'Not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+
 r.get('/:prefix{[drt]}/:name', async (c) => {
   const key = `${c.req.param('prefix')}/${c.req.param('name')}`
-  if (!KEY.test(key)) return c.json({ detail: 'Not found' }, 404)
-
-  const cache = (caches as unknown as { default: Cache }).default
-  const hit = await cache.match(c.req.raw)
-  if (hit) return hit
-
-  const row = await c.env.DB.prepare('SELECT content_type, data FROM files WHERE key = ?')
+  if (!KEY.test(key)) return notFound()
+  const db = c.env.DB
+  const row = await db.prepare('SELECT user_id, content_type, data FROM files WHERE key = ?')
     .bind(key)
-    .first<{ content_type: string; data: ArrayBuffer | number[] }>()
-  if (!row) return c.json({ detail: 'Not found' }, 404)
+    .first<{ user_id: number; content_type: string; data: ArrayBuffer | number[] }>()
+  if (!row) return notFound()
+  const viewer = c.get('user')?.id
+  const isOwner = viewer === row.user_id
+  const isPublic = !isOwner && !!(await db.prepare('SELECT 1 FROM designs WHERE image_key = ? AND is_public = 1').bind(key).first())
+  if (!isOwner && !isPublic) return notFound() // same answer as "missing": doesn't reveal that the file exists
+
   const body = row.data instanceof ArrayBuffer ? row.data : new Uint8Array(row.data)
-  const res = new Response(body, {
-    headers: { 'Content-Type': row.content_type, 'Cache-Control': 'public, max-age=31536000, immutable' },
+  return new Response(body, {
+    headers: {
+      'Content-Type': row.content_type,
+      'Content-Disposition': 'inline',
+      // a stored file can never act as a web page, even if someone uploads a crafted image
+      'Content-Security-Policy': "default-src 'none'; sandbox",
+      'Cache-Control': isOwner ? 'private, max-age=86400' : 'public, max-age=600',
+      Vary: 'Cookie',
+    },
   })
-  c.executionCtx.waitUntil(cache.put(c.req.raw, res.clone()))
-  return res
 })
 
 export default r

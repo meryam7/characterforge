@@ -1,5 +1,6 @@
 /** Workers AI proxy. Returns PNG bytes; the browser normalises, scores and uploads the result as a design.
  * Any failure answers {"detail", "fallback": true} so the browser switches to its procedural engine. */
+import type { Context } from 'hono'
 import { Hono } from 'hono'
 import * as ai from '../ai'
 import { ownedCharacter, ownedDesign, rateLimit } from '../db'
@@ -10,7 +11,7 @@ import { requireUser } from '../middleware'
 const r = new Hono<AppEnv>()
 r.use('*', requireUser)
 
-const B64 = /^[A-Za-z0-9+/]+={0,2}$/
+const B64 = /^[A-Za-z0-9+/]+={0,2}$/ // checked on the whole string
 const MAX_B64 = 2_000_000
 
 const enabled = (env: Env) => env.AI_ENABLED !== 'false'
@@ -21,9 +22,10 @@ async function used(db: D1Database, uid: number) {
   return row?.count ?? 0
 }
 
-async function guard(env: Env, uid: number) {
+async function guard(c: Context<AppEnv>, uid: number) {
+  const env = c.env
   if (!enabled(env)) fail(503, 'AI generation is switched off', { fallback: true })
-  await rateLimit(env.DB, `ai:${uid}`, 6, 60)
+  await rateLimit(c, `ai:${uid}`, 6, 60)
   if ((await used(env.DB, uid)) >= dailyLimit(env)) {
     fail(429, `Daily AI limit reached (${dailyLimit(env)} images). Preview art is used until tomorrow.`, { fallback: true })
   }
@@ -58,11 +60,11 @@ r.get('/status', async (c) => {
 r.post('/generate', async (c) => {
   const uid = c.get('user').id
   const body = await jsonBody(c.req.raw)
-  const ch = await ownedCharacter(c.env.DB, uid, int(body.character_id, 'character_id')!)
+  const ch = await ownedCharacter(c, int(body.character_id, 'character_id')!)
   const extra = str(body.prompt, 'prompt', { max: 500, optional: true })
   const anchor = typeof body.anchor_b64 === 'string' && body.anchor_b64 ? body.anchor_b64 : null
-  if (anchor && (anchor.length > MAX_B64 || !B64.test(anchor.slice(0, 200)))) fail(422, 'anchor_b64: invalid image')
-  await guard(c.env, uid)
+  if (anchor && (anchor.length > MAX_B64 || !B64.test(anchor))) fail(422, 'anchor_b64: invalid image')
+  await guard(c, uid)
   try {
     const out = await ai.generate(c.env, ai.buildPrompt(ch.description || ch.name, ch.style, extra), ch.seed, anchor)
     return finish(c.env, uid, out)
@@ -75,13 +77,15 @@ r.post('/generate', async (c) => {
 r.post('/inpaint', async (c) => {
   const uid = c.get('user').id
   const body = await jsonBody(c.req.raw)
-  const { character } = await ownedDesign(c.env.DB, uid, int(body.design_id, 'design_id')!)
+  const { character } = await ownedDesign(c, int(body.design_id, 'design_id')!)
   const prompt = str(body.prompt, 'prompt', { min: 1, max: 500 })
   const image = typeof body.image_b64 === 'string' ? body.image_b64 : ''
-  if (!image || image.length > MAX_B64 || !B64.test(image.slice(0, 200))) fail(422, 'image_b64: invalid image')
+  if (!image || image.length > MAX_B64 || !B64.test(image)) fail(422, 'image_b64: invalid image')
   const mask = body.mask
-  if (!Array.isArray(mask) || mask.length === 0 || mask.length > 400_000) fail(422, 'mask: invalid')
-  await guard(c.env, uid)
+  if (!Array.isArray(mask) || mask.length < 60 || mask.length > 400_000 || !mask.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) {
+    fail(422, 'mask: must be PNG bytes')
+  }
+  await guard(c, uid)
   try {
     const desc = character.description || character.name
     const out = await ai.inpaint(c.env, ai.buildPrompt(desc, character.style, prompt), character.seed, image, mask as number[])

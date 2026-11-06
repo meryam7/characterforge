@@ -1,9 +1,47 @@
 # Cloudflare Pages project: static frontend (frontend/dist) + Pages Functions (functions/ → server/).
-# Deploy: npm run deploy      Local: npm run build && npm run dev   (http://localhost:8788)
+# Two isolated environments, each with its own database and secrets:
+#   production = branch "main"   → https://characterforge-3u3.pages.dev           (D1: characterforge)
+#   staging    = any other branch → https://staging.characterforge-3u3.pages.dev  (D1: characterforge-staging)
+# Deploy: npm run deploy:staging → test → npm run deploy:production
 name = "characterforge"
 pages_build_output_dir = "frontend/dist"
 compatibility_date = "2025-09-01"
 
+# ---------------------------------------------------------------- production
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "characterforge"
+database_id = "4ee33c02-48a7-4f1b-afb0-ba4cfc578b7e"
+migrations_dir = "migrations"
+
+[env.production.ai]
+binding = "AI"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+AI_ENABLED = "true"
+AI_DAILY_LIMIT = "40"
+ADMIN_EMAILS = ""
+
+# ---------------------------------------------------------------- staging (Pages "preview" environment)
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "characterforge-staging"
+database_id = "f69507c9-e4d5-46e3-b934-a09dc8bb0279"
+migrations_dir = "migrations"
+
+[env.preview.ai]
+binding = "AI"
+
+[env.preview.vars]
+ENVIRONMENT = "staging"
+AI_ENABLED = "true"
+AI_DAILY_LIMIT = "10"
+ADMIN_EMAILS = "admin-staging@example.com"
+
+# ---------------------------------------------------------------- local dev (npm run dev): uses these top-level values
 [[d1_databases]]
 binding = "DB"
 database_name = "characterforge"
@@ -14,8 +52,13 @@ migrations_dir = "migrations"
 binding = "AI"
 
 [vars]
+ENVIRONMENT = "development"
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "40"
-ADMIN_EMAILS = ""
-# Secret (not here): JWT_SECRET  →  npx wrangler pages secret put JWT_SECRET --project-name characterforge
-# Local dev reads secrets from .dev.vars (git-ignored), e.g.  JWT_SECRET=dev-secret
+ADMIN_EMAILS = "admin-local@example.com"
+
+# Secrets are NOT in this file. They live in Cloudflare's encrypted secret store (per environment):
+#   npx wrangler pages secret put MFA_ENCRYPTION_KEY --project-name characterforge [--env preview]
+#   npx wrangler pages secret put LOG_HASH_SALT      --project-name characterforge [--env preview]
+#   npx wrangler pages secret put ALERT_WEBHOOK_URL  --project-name characterforge [--env preview]   (optional)
+# Locally they come from .dev.vars (git-ignored).

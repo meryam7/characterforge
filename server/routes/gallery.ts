@@ -4,6 +4,7 @@ import { designOut, fileUrl, isAdmin, ownedDesign, recordActivity } from '../db'
 import type { AppEnv, CharacterRow, DesignRow } from '../env'
 import { fail, int, now } from '../http'
 import { requireUser } from '../middleware'
+import { logEvent } from '../security-log'
 
 export const gallery = new Hono<AppEnv>()
 
@@ -35,7 +36,7 @@ publish.use('*', requireUser)
 
 publish.post('/:id{[0-9]+}/publish', async (c) => {
   const uid = c.get('user').id
-  const { design, character } = await ownedDesign(c.env.DB, uid, Number(c.req.param('id')))
+  const { design, character } = await ownedDesign(c, Number(c.req.param('id')))
   if (!design.is_public) {
     const ts = now()
     await c.env.DB.batch([
@@ -56,7 +57,11 @@ publish.delete('/:id{[0-9]+}/publish', async (c) => {
     .bind(id)
     .first<DesignRow & { owner: number; character_name: string }>()
   const mine = row?.owner === user.id
-  if (!row || (!mine && !isAdmin(c.env, user.email))) return fail(404, 'Design not found')
+  if (!row || (!mine && !isAdmin(c.env, user.email))) {
+    if (row) await logEvent(c, 'access_denied', 'warn', { detail: { resource: 'design', id } })
+    return fail(404, 'Design not found')
+  }
+  if (!mine && !c.get('session').mfa) fail(403, 'Admin actions require a session verified with MFA')
   if (row.is_public) {
     const stmts = [c.env.DB.prepare('UPDATE designs SET is_public = 0, published_at = NULL WHERE id = ?').bind(id)]
     if (mine) {
@@ -64,6 +69,7 @@ publish.delete('/:id{[0-9]+}/publish', async (c) => {
       stmts.push(recordActivity(c.env.DB, user.id, 'unpublished', ch, { designId: id, detail: 'removed from the community gallery' }))
     }
     await c.env.DB.batch(stmts)
+    if (!mine) await logEvent(c, 'admin_takedown', 'alert', { detail: { design: id, owner: row.owner } })
   }
   return c.json({ ok: true })
 })
