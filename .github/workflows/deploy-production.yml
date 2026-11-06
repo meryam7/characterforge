@@ -19,7 +19,7 @@ jobs:
       BASE: https://staging.characterforge-3u3.pages.dev
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - run: npm run smoke
       - run: npm run test:security
@@ -35,7 +35,7 @@ jobs:
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: "package-lock.json\nfrontend/package-lock.json" }
       - run: npm ci && npm ci --prefix frontend
       - name: Encrypted backup before deploying
