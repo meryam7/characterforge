@@ -68,6 +68,10 @@ ok((await b.call('GET', d.image_url)).status === 404, "other user can't load a p
 ok((await anon.call('GET', d.image_url)).status === 404, "visitor can't load a private image")
 ok((await b.call('GET', '/api/history')).data.items.length === 0, 'history shows only your own events')
 ok((await b.call('GET', '/api/characters')).data.length === 0, 'character list shows only your own')
+for (const p of ['/api/%61dmin/security/summary', '/api/admin%2Fsecurity/events', '/api//admin/security/summary', '/api/ADMIN/security/summary']) {
+  const r = await b.call('GET', p)
+  ok(!(r.data && typeof r.data === 'object' && ('last_24h' in r.data || 'items' in r.data)), `encoded/odd admin path ${p} returns no admin data (${r.status})`)
+}
 ok(!JSON.stringify((await anon.call('GET', '/api/gallery')).data).includes('@'), 'gallery never exposes emails')
 
 // ---------------------------------------------------------------- SQL injection

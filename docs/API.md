@@ -1,38 +1,50 @@
 # HTTP API (`server/`, base `/api`)
 
-Auth uses `Authorization: Bearer <token>` (JWT from register or login, valid 30 days). Missing or bad tokens get 401.
-Another user's rows return 404. Rate limits return 429. Errors look like `{"detail": string, ...}`. Times are ISO-8601 UTC ending in `Z`.
+**Auth uses cookies, not tokens.** `__Host-session` (HttpOnly, Secure, SameSite=Lax) is set by login/register/MFA.
+**CSRF:** every POST/PUT/PATCH/DELETE must send `X-CSRF-Token` equal to the `__Host-csrf` cookie (any GET, e.g.
+`GET /auth/csrf`, issues it). A cross-site `Origin` header is rejected.
+**Deny by default:** only the routes marked "public" work without a session. `/admin/*` also needs an admin email
+and an MFA-verified session. Other users' rows return 404 (and the attempt is logged).
+Errors look like `{"detail": string, ...}`. 401 = log in, 403 = CSRF/MFA required, 413 = body > 4 MB, 415 = wrong
+content type, 422 = validation, 429 = rate limited. Times are ISO-8601 UTC ending in `Z`. Every response has `X-Request-Id`.
 
-## Shapes (server/db.ts ↔ frontend/src/lib/types.ts)
+## Shapes (server ↔ frontend/src/lib/types.ts)
 ```ts
-User      { id, email, display_name, is_admin, created_at }        AuthResult { token, user }
-Character { id, name, description, style, seed, embedding: number[]|null, reference_url|null, cover_url|null, design_count, created_at }
-Design    { id, character_id, parent_id|null, kind: 'generate'|'edit', source: 'ai'|'mock', prompt, consistency|null, image_url, is_public, created_at }
-Activity  { id, action, character_id|null, character_name, design_id|null, detail, thumb_url|null, character_exists, created_at }
-HistoryPage { items: Activity[], next_before|null }     GalleryPage { items: PublicDesign[], next_before|null }
+User        { id, email, display_name, is_admin, mfa_enabled, mfa_verified, created_at }
+LoginResult { status:'ok', user, recovery_codes? } | { status:'mfa_required', challenge } | { status:'mfa_enrol_required', challenge }
+MfaSetup    { secret, otpauth_uri }
+Character   { id, name, description, style, seed, embedding|null, reference_url|null, cover_url|null, design_count, created_at }
+Design      { id, character_id, parent_id|null, kind, source, prompt, consistency|null, image_url, is_public, created_at }
+Activity    { id, action, character_id|null, character_name, design_id|null, detail, thumb_url|null, character_exists, created_at }
 PublicDesign { id, image_url, prompt, kind, source, character_name, style, author, published_at }
-AiStatus  { enabled, daily_limit, remaining }
+SecuritySummary { last_24h[], recent_alerts[], users{n,mfa}, active_sessions }    SecurityEvent { id, type, severity, user_id, subject, ip_hash, path, detail, created_at }
 ```
 
-## Endpoints
-| Method & path | Auth | Notes |
+## Auth & account
+| Route | Access | Notes |
 |---|---|---|
-| GET `/health` | – | `{status, ai, storage:"d1"}` |
-| POST `/auth/register` `{email, password(8-128), display_name(2-40)}` | – | 201. 409 if the email exists. 10/hour per IP |
-| POST `/auth/login` `{email, password}` | – | 401 for bad credentials. 30/10 min per IP, 10/10 min per email |
-| GET / DELETE `/auth/me` | ✓ | DELETE wipes the user, characters, designs, files and history |
-| GET / POST `/characters` `{name, description?, style?}` | ✓ | newest first. Random seed. History `created` |
-| GET / DELETE `/characters/:id` | ✓ | DELETE removes designs and the reference. History `deleted` (keeps the thumbnail) |
-| POST `/characters/:id/reference` multipart `image, thumb, embedding` | ✓ | replaces the reference + identity vector. History `reference` |
-| GET `/characters/:id/designs` | ✓ | oldest first |
-| POST `/characters/:id/designs` multipart `image, thumb, kind, source, prompt?, parent_id?, consistency?, embedding?` | ✓ | 201. The embedding is stored only if the character has none yet. 60/min. History `generated`/`edited` |
-| POST `/characters/:id/exported` `{detail, design_id?}` | ✓ | history `exported` (exports are built in the browser) |
-| GET `/history?before&limit(1-100)&character_id` · DELETE `/history` | ✓ | DELETE also removes thumbnails |
-| GET `/gallery?before&limit(1-60)` | – | public, cached for 30 s |
-| POST / DELETE `/designs/:id/publish` | ✓ | DELETE is allowed for the owner or `ADMIN_EMAILS` |
-| GET `/ai/status` | ✓ | per-user daily allowance |
-| POST `/ai/generate` `{character_id, prompt?, anchor_b64?}` | ✓ | → `image/png`, header `X-AI-Remaining`. 503/429 with `fallback:true` on failure or limit. 6/min |
-| POST `/ai/inpaint` `{design_id, prompt, image_b64, mask:number[]}` | ✓ | mask = PNG bytes, white = repaint. Same responses as generate |
-| GET `/files/:prefix/:name` | – | image bytes, `Cache-Control: immutable`. Keys look like `^[drt]/[a-f0-9]{32}\.(webp|png|jpg)$` |
+| GET `/auth/csrf` | public | `{csrf}` + cookie |
+| POST `/auth/register` `{email, password(10-128, not common), display_name}` | public | 20/h per IP. Admin emails → `mfa_enrol_required` (no session) |
+| POST `/auth/login` `{email, password}` | public | 60/10 min per IP, 10/10 min per account. Constant-time for unknown emails |
+| POST `/auth/mfa/verify` `{challenge, code}` | public (challenge) | TOTP or recovery code. 5 tries per challenge, 5 min TTL, replay-protected |
+| POST `/auth/mfa/enrol/start` / `/enrol/finish` `{challenge, code?}` | public (challenge) | first-time admin MFA, returns `recovery_codes` once |
+| GET `/auth/me` · POST `/auth/logout` · POST `/auth/sessions/revoke` | session | revoke = sign out other devices |
+| POST `/auth/password` `{current_password, new_password}` | session | revokes other sessions |
+| POST `/auth/mfa/setup` → POST `/auth/mfa/enable` `{code}` | session | optional MFA for everyone. Enable revokes all sessions and issues a fresh MFA session |
+| POST `/auth/mfa/disable` `{password, code}` | session | not allowed for admins |
+| DELETE `/auth/me` `{password, code?}` | session | wipes all user data |
 
-Uploaded images must be WebP, PNG or JPEG and ≤1.5 MB (415/413 otherwise).
+## App
+| Route | Access | Notes |
+|---|---|---|
+| GET `/health` | public | `{status, env, ai, storage}` |
+| GET/POST `/characters`, GET/DELETE `/characters/:id` | session + owner | |
+| POST `/characters/:id/reference` (multipart image, thumb, embedding) | owner | WebP/PNG/JPEG ≤ 1.5 MB |
+| GET/POST `/characters/:id/designs` (multipart image, thumb, kind, source, prompt, parent_id?, consistency?, embedding?) | owner | 60/min |
+| POST `/characters/:id/exported` `{detail, design_id?}` | owner | history only |
+| GET/DELETE `/history` | session | own entries only |
+| GET `/gallery` | public | never exposes emails |
+| POST/DELETE `/designs/:id/publish` | owner. DELETE also admin + MFA | admin takedown is logged as an alert |
+| GET `/ai/status` · POST `/ai/generate` · POST `/ai/inpaint` | session (+owner) | 6/min. Base64 and mask strictly validated. `fallback:true` on failure |
+| GET `/files/:prefix/:name` | owner, or anyone if the design is shared | `CSP: sandbox`, private cache for owners |
+| GET `/admin/security/summary` · `/admin/security/events?before&severity&limit` | admin + MFA session | |

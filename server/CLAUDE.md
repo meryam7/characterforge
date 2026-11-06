@@ -1,12 +1,14 @@
 # Server — Claude guide (Hono on Cloudflare Pages Functions, `server/`)
 
 Entry: `functions/api/[[path]].ts` → `server/app.ts` (`basePath('/api')`). Bindings: `DB` (D1), `AI` (Workers AI),
-vars `AI_ENABLED`, `AI_DAILY_LIMIT`, `ADMIN_EMAILS`, secret `JWT_SECRET`. Typecheck with `npx tsc -p server`.
+vars `ENVIRONMENT`, `AI_ENABLED`, `AI_DAILY_LIMIT`, `ADMIN_EMAILS`; secrets `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`,
+`ALERT_WEBHOOK_URL?`. Typecheck with `npx tsc -p server`. Security model: `docs/SECURITY.md`.
 **Budget: about 10 ms CPU per request (free plan).** Only do I/O here, plus PBKDF2 at login and register.
 
 ## Request flow
-route → `requireUser` (Bearer JWT → `c.get('user')`) → `ownedCharacter`/`ownedDesign` → D1 statements (prefer one
-`db.batch([...])`, which is atomic) → `*Out()` shape → JSON. Errors: `fail(status, detail, extra?)` throws `ApiError`, which
+requestContext (request id, ip hash, one log line) → securityHeaders → bodyLimit (4 MB) → generalRateLimit (300/min/IP) →
+csrfProtection → authenticate (cookie → `c.get('user')`/`c.get('session')`) → authorize (PUBLIC list on decoded path,
+admin+MFA) → route → `ownedCharacter(c, id)`/`ownedDesign(c, id)` → D1 (prefer one atomic `db.batch`) → `*Out()` → JSON. Errors: `fail(status, detail, extra?)` throws `ApiError`, which
 `app.onError` turns into `{"detail": ..., ...extra}`.
 
 ## Routes
@@ -24,14 +26,18 @@ route → `requireUser` (Bearer JWT → `c.get('user')`) → `ownedCharacter`/`o
 | GET | `/api/gallery?before&limit` (public) | routes/gallery.ts |
 | POST/DELETE | `/api/designs/:id/publish` (DELETE: owner or admin) | routes/gallery.ts |
 | GET | `/api/ai/status` · POST `/api/ai/generate` · POST `/api/ai/inpaint` | routes/ai.ts |
-| GET | `/api/files/:prefix/:name` (public, edge cached, immutable) | routes/files.ts |
+| GET | `/api/files/:prefix/:name` (owner, or anyone for shared designs) | routes/files.ts |
+| POST | `/api/auth/{logout,password,sessions/revoke,mfa/setup,mfa/enable,mfa/disable,mfa/verify,mfa/enrol/start,mfa/enrol/finish}`; GET `/api/auth/csrf` | routes/auth.ts |
+| GET | `/api/admin/security/{summary,events}` (admin + MFA) | routes/admin.ts |
 
 ## Adding a route (checklist)
-1. Handler in the right `routes/*.ts`, with `requireUser` already applied via `r.use('*', requireUser)` where needed.
+1. Handler in the right `routes/*.ts`. It's private automatically. If it must be public, add it to `PUBLIC` in
+   `middleware.ts` and justify it in `docs/SECURITY.md`.
 2. Validate with `jsonBody` + `str`/`int` from `http.ts`, and load rows through `ownedCharacter`/`ownedDesign`.
 3. Write with `db.batch([...])`, including `recordActivity(...)` if the user should see it in their history.
 4. Return an `*Out` shape, then mirror it in `frontend/src/lib/types.ts` + `api.ts`.
-5. Extend `scripts/smoke.mjs`, run `npm run build && npm run dev`, then `npm run smoke`.
+5. Extend `scripts/smoke.mjs` (and `security-test.mjs` with an IDOR probe), run `npm run build && npm run dev`, then
+   `npm run smoke && npm run test:security && npm run check:security`.
 
 ## Files (images in D1)
 `prepareFile(db, uid, 'd'|'r'|'t', File)` validates the type (webp/png/jpeg) and size (≤1.5 MB) and returns `{key, stmt}`. Put the

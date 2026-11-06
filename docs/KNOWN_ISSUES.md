@@ -12,12 +12,15 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
    `--dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`. `*.r2.cloudflarestorage.com` is unreachable.
 
 ## Open
-- `/api/files/*` is public (unguessable 128-bit keys). Private images would need signed URLs.
+- Security model, review and accepted risks: `docs/SECURITY.md`.
+- Testing from this PC: sign-ups are limited to 20/h per IP, so repeated test runs can hit 429. Wait or use another network.
+- `wrangler d1 export` writes images as >100 KB statements that D1 can't import. Restore only via `scripts/restore-test.mjs`
+  (it splits them).
+- Auto mode blocks production deploys and raw SQL on production from Claude sessions. A human runs `npm run deploy:production`
+  or the GitHub workflow.
 - The consistency score is a colour histogram (CLIP isn't available on Workers AI). It's a rough signal.
-- Rate limits and the AI quota are per user. A determined attacker could create many accounts (register is limited to 10/hour per IP).
-- There's no password reset or email verification (that needs an email service).
+- Rate limits and the AI quota are per user. A determined attacker could create many accounts (register is limited to 20/hour per IP; the security console shows such patterns).
 - Gallery moderation is manual: admins (`ADMIN_EMAILS` var) call `DELETE /api/designs/:id/publish`. There's no admin UI.
-- The JWT in localStorage is readable by any XSS. Never use `dangerouslySetInnerHTML`.
 - Background removal is imperfect on AI images with shadows (see `EXPORT_GODOT.md`).
 - Konva/three chunks are large (about 210 KB gzipped). They load only in the studio.
 

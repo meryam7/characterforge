@@ -1,9 +1,22 @@
 /** Admin security console. Reachable only by ADMIN_EMAILS users with an MFA-verified session (see middleware.authorize). */
 import { Hono } from 'hono'
 import type { AppEnv } from '../env'
-import { int, str } from '../http'
+import { isAdmin } from '../db'
+import { fail, int, str } from '../http'
+import { logEvent } from '../security-log'
 
 const r = new Hono<AppEnv>()
+
+// Defence in depth: enforce admin + MFA inside the admin router too, so no path trick can skip the global check.
+r.use('*', async (c, next) => {
+  const user = c.get('user')
+  if (!user || !isAdmin(c.env, user.email)) {
+    await logEvent(c, 'access_denied', 'warn', { detail: { area: 'admin' } })
+    fail(404, 'Not found')
+  }
+  if (!c.get('session')?.mfa) fail(403, 'Admin area requires a session verified with MFA - log in again')
+  await next()
+})
 
 r.get('/security/summary', async (c) => {
   const since = Math.floor(Date.now() / 1000) - 86400

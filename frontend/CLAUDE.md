@@ -7,7 +7,7 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 | File | Role |
 |---|---|
 | `App.tsx` | Auth state + session restore, hash views `#/studio` `#/history` `#/gallery`, characters list, `run(label, fn)` (busy toast + error banner). Logged out → `Landing`. `Studio` is lazy. |
-| `lib/api.ts` | `api.*`, `ApiError(status, message, data)` (`data.fallback` = use placeholder art), token in localStorage, 401 → `LOGGED_OUT_EVENT`. |
+| `lib/api.ts` | `api.*`, `ApiError(status, message, data)` (`data.fallback` = use placeholder art). Session = HttpOnly cookie (JS never sees it). Sends `X-CSRF-Token` from the `__Host-csrf` cookie and retries once on a CSRF 403. 401 → `LOGGED_OUT_EVENT`. |
 | `lib/types.ts` | Mirrors server output shapes + `STYLES`. |
 | `lib/format.ts` | `slug()`, `timeAgo()`. |
 | `lib/engine/index.ts` | `renderDesign` / `renderEdit` (Workers AI first, placeholder fallback), `saveDesign`, `saveReference`, `anchorFor`. |
@@ -21,11 +21,16 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 | `components/Panels.tsx` | `GeneratePanel`, `EditPanel`, `ExportPanel` (`ExportKind`). |
 | `components/CanvasStage.tsx` | Konva stage. Clicks become image-pixel points. |
 | `components/Preview3D.tsx` | three.js standee from `transparentPng(design)` (lazy). |
-| `components/{Landing,AuthForm,Sidebar,HistoryView,CommunityGallery,Gallery,CharacterModal,ConfirmButton}.tsx` | Screens and widgets. |
+| `components/AuthForm.tsx` + `Mfa.tsx` | Login/sign-up state machine: credentials → MFA code or MFA enrolment (QR via `qrcode-generator`) → recovery codes. |
+| `components/SettingsView.tsx` | MFA on/off, change password, sign out other devices, delete account (password + MFA). |
+| `components/SecurityView.tsx` | Admin security console (lazy; server enforces admin + MFA). |
+| `components/{Landing,Sidebar,HistoryView,CommunityGallery,Gallery,CharacterModal,ConfirmButton}.tsx` | Screens and widgets. |
 
 ## Conventions
 - Pixel work only in `lib/engine`. Components call engine functions inside `run()`.
 - Designs are normalised to 512×768 on white and uploaded as WebP (plus a 160×240 thumbnail).
 - Styling uses Tailwind + component classes in `src/index.css` (`panel`, `btn-primary`, `btn-ghost`, `input`, `label`, `chip`,
   `checker`). Icons come from `lucide-react`. React stays 18. Use `ConfirmButton`, never `window.confirm`.
-- `index.html` uses `%VITE_SITE_URL%` for social tags (set at build: `VITE_SITE_URL=https://characterforge-3u3.pages.dev`).
+- `index.html` uses `%VITE_SITE_URL%` from `.env.production` / `.env.staging` (`vite build --mode staging`).
+- Security: strict CSP in `public/_headers` (no inline scripts, no eval, so don't add any). Never `dangerouslySetInnerHTML`/
+  `innerHTML`, never tokens in `localStorage` (`npm run check:security` enforces this). Form fields need unique ids.

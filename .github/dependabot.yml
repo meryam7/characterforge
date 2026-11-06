@@ -1,0 +1,23 @@
+# Dependency supervision: weekly update PRs (security fixes are raised immediately by GitHub).
+# Each PR runs CI (typecheck, build, security checks, audit) before you merge it - the site keeps running meanwhile.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+    ignore:
+      # React 19 needs react-konva 19 and code changes; upgrade deliberately, not automatically
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

@@ -1,0 +1,44 @@
+name: Backup
+# Daily encrypted backup of the production database (kept 30 days as a private workflow artifact)
+# + weekly restore test into the scratch database "characterforge-restore-test".
+# Needs repository secrets CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, BACKUP_PASSPHRASE.
+on:
+  schedule:
+    - cron: '17 3 * * *' # every day 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Skip when secrets are not configured
+        id: gate
+        run: echo "ok=$([ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$BACKUP_PASSPHRASE" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - if: steps.gate.outputs.ok == 'true'
+        uses: actions/checkout@v4
+      - if: steps.gate.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - if: steps.gate.outputs.ok == 'true'
+        run: npm ci
+      - if: steps.gate.outputs.ok == 'true'
+        run: npm run backup -- characterforge
+      - if: steps.gate.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 30
+      - name: Weekly restore test (Sundays)
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          if [ "$(date -u +%u)" = "7" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            npm run restore:test -- "$(ls backups/*.cfbk | head -1)"
+          fi

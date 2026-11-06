@@ -113,7 +113,8 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
 })
 
 export const authorize = createMiddleware<AppEnv>(async (c, next) => {
-  const path = new URL(c.req.url).pathname
+  // Decide on the SAME (percent-decoded) path the router uses: /api/%61dmin must count as /api/admin.
+  const path = c.req.path
   const isPublic = PUBLIC.some(([m, re]) => m === c.req.method && re.test(path))
   const user = c.get('user')
   if (!isPublic && !user) fail(401, 'Please log in')
