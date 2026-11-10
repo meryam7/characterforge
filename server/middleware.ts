@@ -13,6 +13,10 @@ import { csrfCookie, issueCsrf, loadSession } from './session'
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
+/** Local development only: the browser talks to Vite (:5173), which proxies /api to wrangler (:8788), so the
+ * browser's Origin differs from the API's own origin. Never used in staging/production (ENVIRONMENT var). */
+const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8788', 'http://127.0.0.1:8788']
+
 /** Routes reachable without logging in. Everything else is denied by default. */
 const PUBLIC: [string, RegExp][] = [
   ['GET', /^\/api\/health$/],
@@ -90,10 +94,10 @@ export const generalRateLimit = createMiddleware<AppEnv>(async (c, next) => {
 export const csrfProtection = createMiddleware<AppEnv>(async (c, next) => {
   if (UNSAFE.has(c.req.method)) {
     const origin = c.req.header('origin')
-    const expected = new URL(c.req.url).origin
+    const allowed = new Set([new URL(c.req.url).origin, ...(c.env.ENVIRONMENT === 'development' ? DEV_ORIGINS : [])])
     const cookie = csrfCookie(c)
     const header = c.req.header('x-csrf-token') ?? ''
-    const badOrigin = origin !== undefined && origin !== expected
+    const badOrigin = origin !== undefined && !allowed.has(origin)
     if (badOrigin || !cookie || !safeEqual(cookie, header)) {
       await logEvent(c, 'csrf_failed', 'warn', { detail: { method: c.req.method, reason: badOrigin ? 'origin' : 'token' } })
       return c.json({ detail: 'Security check failed - reload the page and try again' }, 403)

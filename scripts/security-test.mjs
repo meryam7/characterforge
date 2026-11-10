@@ -43,6 +43,15 @@ const wrongToken = await a.call('POST', '/api/characters', { json: { name: 'x' }
 ok(wrongToken.status === 403, 'forged CSRF token -> 403')
 const evilOrigin = await a.call('POST', '/api/characters', { json: { name: 'x' }, headers: { Origin: 'https://evil.example' } })
 ok(evilOrigin.status === 403, 'cross-site Origin -> 403')
+if (health.env === 'development') {
+  const viaVite = await a.call('POST', '/api/characters', { json: { name: 'via vite' }, headers: { Origin: 'http://localhost:5173' } })
+  ok(viaVite.status === 201, `dev: requests from the Vite dev server (localhost:5173) are accepted (${viaVite.status})`)
+} else {
+  const devOrigin = await a.call('POST', '/api/characters', { json: { name: 'x' }, headers: { Origin: 'http://localhost:5173' } })
+  ok(devOrigin.status === 403, 'staging/production: dev-server Origin is NOT accepted')
+}
+const csrfRes = await anon.call('GET', '/api/auth/csrf')
+ok(csrfRes.setCookies.filter((l) => l.startsWith('__Host-csrf=')).length <= 1, 'CSRF cookie issued at most once per response')
 
 // ---------------------------------------------------------------- deny by default
 for (const [m, p] of [['GET', '/api/characters'], ['GET', '/api/history'], ['GET', '/api/ai/status'], ['GET', '/api/admin/security/summary'], ['POST', '/api/characters']]) {

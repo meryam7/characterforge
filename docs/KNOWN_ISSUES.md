@@ -12,6 +12,8 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
    `--dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`. `*.r2.cloudflarestorage.com` is unreachable.
 
 ## Open
+- Local dev through Vite (:5173 → wrangler :8788): the CSRF Origin check accepts the local dev origins only when
+  `ENVIRONMENT = "development"` (top-level `[vars]` in wrangler.toml). Never set that value on staging/production.
 - Legal pages contain placeholders (`OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` in `frontend/src/lib/legal.ts`): fill them
   in before launch, and have the texts reviewed by a lawyer for your country.
 - Server error messages are English; the UI translates the common ones (`i18n.fr.ts` "server messages" block). New

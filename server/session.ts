@@ -61,9 +61,12 @@ export const revokeSessions = (db: D1Database, userId: number, keepIdHash?: stri
     : db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId)
 
 export function issueCsrf(c: Context<AppEnv>, rotate = false): string {
+  const issued = c.get('csrfIssued') // already set during this request: never send two different tokens
+  if (issued) return issued
   const existing = getCookie(c, 'csrf', 'host')
   if (existing && !rotate) return existing
   const token = randomToken(24)
+  c.set('csrfIssued', token)
   setCookie(c, 'csrf', token, { prefix: 'host', httpOnly: false, secure: true, sameSite: 'Strict', path: '/', maxAge: SESSION_TTL })
   return token
 }

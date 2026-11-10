@@ -72,6 +72,7 @@ export type Vars = {
   session: SessionInfo
   requestId: string
   ipHash: string
+  csrfIssued?: string // CSRF token set on this response (see session.issueCsrf)
 }
 
 export type AppEnv = { Bindings: Env; Variables: Vars }
