@@ -113,7 +113,7 @@ export function DesignCard({ design: d, onChange, run, user, onNeedLogin, onRemi
     <>
       <a href={`/d/${d.id}`} className="block" aria-label={d.character_name}>
         <img src={fileUrl(d.image_url)} alt={`${d.character_name}: ${d.prompt}`} loading="lazy"
-          className={`w-full bg-white object-cover ${large ? 'aspect-[2/3] max-h-[70vh] object-contain' : 'aspect-[2/3]'}`} />
+          className={`w-full bg-[#fff] object-cover ${large ? 'aspect-[2/3] max-h-[70vh] object-contain' : 'aspect-[2/3]'}`} />
       </a>
       <div className="space-y-1.5 p-2">
         <div className="truncate text-sm font-medium">{d.character_name}</div>

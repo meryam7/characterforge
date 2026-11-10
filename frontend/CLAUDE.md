@@ -22,7 +22,8 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 | `components/CanvasStage.tsx` | Konva stage. Clicks become image-pixel points. |
 | `components/Preview3D.tsx` | three.js standee from `transparentPng(design)` (lazy). |
 | `components/AuthForm.tsx` + `Mfa.tsx` | Login/sign-up state machine: credentials → MFA code or MFA enrolment (QR via `qrcode-generator`) → recovery codes. |
-| `components/SettingsView.tsx` | MFA on/off, change password, sign out other devices, delete account (password + MFA). |
+| `components/SettingsView.tsx` | Settings: account + **Log out** (only place), Appearance (theme Dark/Light/Same as my device, language), MFA, password, sessions, delete account. |
+| `lib/theme.ts` · `public/theme-init.js` | Theme mode (localStorage `charaforge_theme`), applied before first paint by theme-init.js (external file: CSP forbids inline scripts), follows the OS in "system". |
 | `components/SecurityView.tsx` | Admin security console (lazy; server enforces admin + MFA). |
 | `components/CommunityGallery.tsx` | Gallery (New/Popular) + `DesignCard` (like, start from this, copy link, report dialog). Shared by the share page. |
 | `components/ShareView.tsx` | `/d/<id>` page (App reads `location.pathname`). Works logged out. |
@@ -38,5 +39,9 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 - Styling uses Tailwind + component classes in `src/index.css` (`panel`, `btn-primary`, `btn-ghost`, `input`, `label`, `chip`,
   `checker`). Icons come from `lucide-react`. React stays 18. Use `ConfirmButton`, never `window.confirm`.
 - `index.html` uses `%VITE_SITE_URL%` from `.env.production` / `.env.staging` (`vite build --mode staging`).
+- **Themes**: colours `ink-*`, `violet-50..300` and `white` are CSS variables (`src/index.css`, `[data-theme=light|dark]`), so
+  normal classes are theme-safe. `white` = foreground/overlay colour (dark violet in light mode): use `bg-[#fff]` /
+  `text-[#fff]` for a real white (image backdrops, text on the purple button), `.brand-text` for the gradient logo text.
+  New pastel status text colours (`text-*-200/300`) need a light-mode override in `index.css`.
 - Security: strict CSP in `public/_headers` (no inline scripts, no eval, so don't add any). Never `dangerouslySetInnerHTML`/
   `innerHTML`, never tokens in `localStorage` (`npm run check:security` enforces this). Form fields need unique ids.

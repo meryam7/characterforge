@@ -59,7 +59,7 @@ export default function SecurityView({ run }: { run: Run }) {
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {reports.map((r) => (
             <li key={r.design_id} className="flex gap-3 rounded-xl border border-white/10 p-2">
-              <img src={fileUrl(r.image_url)} alt="" className="h-28 w-20 shrink-0 rounded-lg bg-white object-cover" />
+              <img src={fileUrl(r.image_url)} alt="" className="h-28 w-20 shrink-0 rounded-lg bg-[#fff] object-cover" />
               <div className="min-w-0 flex-1 space-y-1 text-xs">
                 <div className="truncate text-sm font-medium">{r.character_name}</div>
                 <div className="truncate text-violet-300/70">{t('by {author}', { author: r.author })} · #{r.design_id}</div>

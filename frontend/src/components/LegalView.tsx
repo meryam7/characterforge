@@ -57,6 +57,14 @@ export function CookieNotice() {
       return true
     }
   })
+  // keep the bottom of long pages reachable while the notice is shown (it is fixed over the content)
+  useEffect(() => {
+    if (!open) return
+    document.documentElement.style.setProperty('--notice-space', '7rem') // used by body and the app's <main>
+    return () => {
+      document.documentElement.style.removeProperty('--notice-space')
+    }
+  }, [open])
   if (!open) return null
   const close = () => {
     setOpen(false)

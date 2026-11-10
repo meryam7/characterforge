@@ -19,7 +19,7 @@ export function MfaEnrolPanel({ setup, onConfirm }: { setup: MfaSetup; onConfirm
       <p className="text-sm text-violet-200">
         {t('Scan this code with an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password...), then enter the 6-digit code it shows.')}
       </p>
-      <img src={qr} alt={t('QR code for your authenticator app')} className="mx-auto h-44 w-44 rounded-xl bg-white p-2" />
+      <img src={qr} alt={t('QR code for your authenticator app')} className="mx-auto h-44 w-44 rounded-xl bg-[#fff] p-2" />
       <details className="text-xs text-violet-300/80">
         <summary className="cursor-pointer">{t('Can\'t scan? Enter this key manually')}</summary>
         <code className="mt-1 block break-all rounded-lg bg-black/30 p-2 font-mono text-violet-100">{setup.secret}</code>

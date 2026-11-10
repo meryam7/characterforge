@@ -82,6 +82,8 @@ falls back to placeholder art. Test AI against staging.
 - D1 limits: row ≤ 2 MB (images ≤ 1.5 MB enforced, and the browser uploads WebP), ≤ 100 bound params per statement.
 - Workers AI: never put "nsfw" in prompts (the model returns a black image). `toResponse` rejects blank output → `fallback`.
 - Frontend: all calls go through `api`. Async UI work goes through `run(label, fn)`. Heavy libs (konva, three) stay lazy.
+  Dark/light themes come from CSS variables: see the Themes rule in `frontend/CLAUDE.md` before adding colours. Log out
+  lives only in Settings.
 - **i18n**: every user-visible string goes through `t('English text', {vars})` from `useI18n()`. Add the French to
   `lib/i18n.fr.ts` (`npm run check:i18n` fails otherwise). Server error `detail`s shown to users should get a French
   entry too. AI prompts stay English (the models understand English best).

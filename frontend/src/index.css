@@ -2,14 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------- themes
+ * <html data-theme="dark|light"> is set before the first paint by /theme-init.js and later by lib/theme.ts.
+ * Colours are RGB triplets used by tailwind.config.js. */
 @layer base {
+  :root,
+  [data-theme='dark'] {
+    color-scheme: dark;
+    --c-ink-950: 11 6 20;
+    --c-ink-900: 18 10 32;
+    --c-ink-800: 26 16 46;
+    --c-fg: 255 255 255;
+    --c-violet-50: 245 243 255;
+    --c-violet-100: 237 233 254;
+    --c-violet-200: 221 214 254;
+    --c-violet-300: 196 181 253;
+    --glow-1: rgba(139, 92, 246, 0.3);
+    --glow-2: rgba(217, 70, 239, 0.18);
+    --checker-a: #150c27;
+    --checker-b: #1d1233;
+    --brand-from: #c4b5fd;
+    --brand-via: #d8b4fe;
+    --brand-to: #f0abfc;
+  }
+  [data-theme='light'] {
+    color-scheme: light;
+    --c-ink-950: 247 245 255;
+    --c-ink-900: 255 255 255;
+    --c-ink-800: 237 233 254;
+    --c-fg: 46 16 101;
+    --c-violet-50: 30 18 58;
+    --c-violet-100: 46 29 92;
+    --c-violet-200: 76 48 140;
+    --c-violet-300: 98 64 178;
+    --glow-1: rgba(139, 92, 246, 0.16);
+    --glow-2: rgba(217, 70, 239, 0.1);
+    --checker-a: #f3f0fb;
+    --checker-b: #e8e3f7;
+    --brand-from: #6d28d9;
+    --brand-via: #9333ea;
+    --brand-to: #c026d3;
+  }
+
   body {
     @apply bg-ink-950 font-sans text-violet-50 antialiased;
     background-image:
-      radial-gradient(60rem 40rem at 8% -10%, rgba(139, 92, 246, 0.3), transparent 60%),
-      radial-gradient(50rem 35rem at 110% 10%, rgba(217, 70, 239, 0.18), transparent 60%);
+      radial-gradient(60rem 40rem at 8% -10%, var(--glow-1), transparent 60%),
+      radial-gradient(50rem 35rem at 110% 10%, var(--glow-2), transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;
+    padding-bottom: var(--notice-space, 0px);
   }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: rgba(167, 139, 250, 0.3); border-radius: 8px; }
@@ -18,16 +60,41 @@
 @layer components {
   .panel { @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-md; }
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300 disabled:cursor-not-allowed disabled:opacity-40; }
-  .btn-primary { @apply btn bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 text-white shadow-glow hover:brightness-110; }
+  .btn-primary { @apply btn bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 text-[#fff] shadow-glow hover:brightness-110; }
   .btn-ghost { @apply btn border border-white/10 bg-white/5 text-violet-100 hover:bg-white/10; }
   .input { @apply w-full rounded-xl border border-white/10 bg-ink-900/70 px-3 py-2 text-sm text-violet-50 outline-none placeholder:text-violet-300/40 focus:border-violet-400/60 focus:ring-2 focus:ring-violet-500/30; }
   .label { @apply mb-1 block text-xs font-medium text-violet-300/80; }
   .chip { @apply rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-xs text-violet-200 transition hover:bg-violet-500/25; }
   .checker {
-    background-color: #150c27;
-    background-image: conic-gradient(#1d1233 25%, #150c27 0 50%, #1d1233 0 75%, #150c27 0);
+    background-color: var(--checker-a);
+    background-image: conic-gradient(var(--checker-b) 25%, var(--checker-a) 0 50%, var(--checker-b) 0 75%, var(--checker-a) 0);
     background-size: 24px 24px;
   }
+  /* gradient logo / headline text */
+  .brand-text {
+    background-image: linear-gradient(to right, var(--brand-from), var(--brand-via), var(--brand-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Light theme: the pastel status colours used for text on the dark theme are too pale on white. */
+@layer utilities {
+  [data-theme='light'] .text-red-200,
+  [data-theme='light'] .text-red-300 { color: #b91c1c; }
+  [data-theme='light'] .text-emerald-100,
+  [data-theme='light'] .text-emerald-200,
+  [data-theme='light'] .text-emerald-300 { color: #047857; }
+  [data-theme='light'] .text-amber-100,
+  [data-theme='light'] .text-amber-200,
+  [data-theme='light'] .text-amber-300 { color: #b45309; }
+  [data-theme='light'] .text-teal-200,
+  [data-theme='light'] .text-teal-300 { color: #0f766e; }
+  [data-theme='light'] .text-sky-300 { color: #0369a1; }
+  [data-theme='light'] .text-pink-300 { color: #be185d; }
+  [data-theme='light'] .text-fuchsia-300 { color: #a21caf; }
+  [data-theme='light'] .shadow-glow { box-shadow: 0 0 30px -10px rgba(124, 58, 237, 0.35); }
 }
 
 @media (prefers-reduced-motion: reduce) {

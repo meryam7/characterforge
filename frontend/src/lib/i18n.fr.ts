@@ -266,6 +266,10 @@ export const fr: Record<string, string> = {
 
   // ---------------------------------------------------------------- settings
   'Account & security': 'Compte et sécurité',
+  'Theme': 'Thème',
+  'Dark': 'Sombre',
+  'Light': 'Clair',
+  'Same as my device': 'Comme mon appareil',
   'Role': 'Rôle',
   'Administrator': 'Administrateur',
   'Creator': 'Créateur',

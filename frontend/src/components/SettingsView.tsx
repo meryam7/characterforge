@@ -1,16 +1,24 @@
-import { KeyRound, LogOut, Settings, ShieldCheck, ShieldOff, UserX } from 'lucide-react'
+import { KeyRound, LogOut, Monitor, Moon, Palette, Settings, ShieldCheck, ShieldOff, Sun, UserX } from 'lucide-react'
 import { useState } from 'react'
 import type { Run } from '../App'
 import { api } from '../lib/api'
 import type { MfaSetup, User } from '../lib/types'
 import ConfirmButton from './ConfirmButton'
 import { CodeInput, MfaEnrolPanel, RecoveryCodes } from './Mfa'
-import { useI18n } from '../lib/i18n'
+import { LANGS, useI18n } from '../lib/i18n'
+import { THEME_MODES, useThemeMode, type ThemeMode } from '../lib/theme'
 
-type Props = { user: User; setUser: (u: User) => void; run: Run; onLoggedOut: () => void }
+type Props = { user: User; setUser: (u: User) => void; run: Run; onLoggedOut: () => void; onLogout: () => void }
 
-export default function SettingsView({ user, setUser, run, onLoggedOut }: Props) {
-  const { t } = useI18n()
+const THEME_META: Record<ThemeMode, { label: string; icon: typeof Sun }> = {
+  dark: { label: 'Dark', icon: Moon },
+  light: { label: 'Light', icon: Sun },
+  system: { label: 'Same as my device', icon: Monitor },
+}
+
+export default function SettingsView({ user, setUser, run, onLoggedOut, onLogout }: Props) {
+  const { t, lang, setLang } = useI18n()
+  const [theme, setTheme] = useThemeMode()
   const [setup, setSetup] = useState<MfaSetup | null>(null)
   const [codes, setCodes] = useState<string[] | null>(null)
   const [cur, setCur] = useState('')
@@ -25,13 +33,61 @@ export default function SettingsView({ user, setUser, run, onLoggedOut }: Props)
 
   return (
     <section className="mx-auto w-full max-w-2xl space-y-4">
-      <h2 className="flex items-center gap-2 font-display text-xl font-bold"><Settings size={18} /> {t('Account & security')}</h2>
+      <h2 className="flex items-center gap-2 font-display text-xl font-bold"><Settings size={18} /> {t('Settings')}</h2>
       {message && <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">{message}</p>}
 
-      <div className="panel space-y-1 p-4 text-sm">
-        <div><span className="text-violet-300/70">{t('Name')}:</span> {user.display_name}</div>
-        <div><span className="text-violet-300/70">{t('Email')}:</span> {user.email}</div>
-        <div><span className="text-violet-300/70">{t('Role')}:</span> {user.is_admin ? t('Administrator') : t('Creator')}</div>
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+        <div className="space-y-1">
+          <div><span className="text-violet-300/70">{t('Name')}:</span> {user.display_name}</div>
+          <div><span className="text-violet-300/70">{t('Email')}:</span> {user.email}</div>
+          <div><span className="text-violet-300/70">{t('Role')}:</span> {user.is_admin ? t('Administrator') : t('Creator')}</div>
+        </div>
+        <button className="btn-ghost" onClick={onLogout}>
+          <LogOut size={15} /> {t('Log out')}
+        </button>
+      </div>
+
+      <div className="panel space-y-4 p-4">
+        <h3 className="flex items-center gap-2 font-display text-sm font-bold"><Palette size={15} /> {t('Appearance')}</h3>
+        <fieldset>
+          <legend className="label">{t('Theme')}</legend>
+          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
+            {THEME_MODES.map((m) => {
+              const { label, icon: Icon } = THEME_META[m]
+              return (
+                <button
+                  key={m}
+                  role="radio"
+                  aria-checked={theme === m}
+                  onClick={() => setTheme(m)}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
+                    theme === m ? 'border-violet-400 bg-violet-500/20 font-medium' : 'border-white/10 bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <Icon size={16} /> {t(label)}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend className="label">{t('Language')}</legend>
+          <div className="grid grid-cols-2 gap-2 sm:w-1/2" role="radiogroup">
+            {LANGS.map((l) => (
+              <button
+                key={l.id}
+                role="radio"
+                aria-checked={lang === l.id}
+                onClick={() => setLang(l.id)}
+                className={`rounded-xl border px-3 py-2 text-sm transition ${
+                  lang === l.id ? 'border-violet-400 bg-violet-500/20 font-medium' : 'border-white/10 bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                {l.id === 'en' ? 'English' : 'Français'}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
       <div className="panel space-y-3 p-4">

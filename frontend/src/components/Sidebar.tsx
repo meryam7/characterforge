@@ -1,4 +1,4 @@
-import { Globe2, History, LogOut, Palette, Plus, Settings, ShieldAlert, Trash2 } from 'lucide-react'
+import { Globe2, History, Palette, Plus, Settings, ShieldAlert, Trash2 } from 'lucide-react'
 import type { View } from '../App'
 import { fileUrl } from '../lib/api'
 import { LanguageSwitch, useI18n } from '../lib/i18n'
@@ -15,7 +15,6 @@ type Props = {
   onSelect: (id: number) => void
   onNew: () => void
   onDelete: (id: number) => void
-  onLogout: () => void
 }
 
 const NAV: { id: View; label: string; icon: typeof Palette; admin?: boolean }[] = [
@@ -32,7 +31,7 @@ export default function Sidebar(p: Props) {
     <aside className="flex w-full shrink-0 flex-col gap-4 border-b border-white/10 bg-ink-900/60 p-4 backdrop-blur lg:h-screen lg:w-72 lg:border-b-0 lg:border-r">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text font-display text-xl font-bold text-transparent">
+          <h1 className="brand-text font-display text-xl font-bold">
             CharaForge
           </h1>
           <p className="mt-1 text-xs text-violet-300/70">{t('Design characters that stay themselves.')}</p>
@@ -103,11 +102,6 @@ export default function Sidebar(p: Props) {
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{p.user.display_name}</div>
           <div className="truncate text-xs text-violet-300/60">{p.user.email}</div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button className="btn-ghost px-3 py-1.5 text-xs" onClick={p.onLogout}>
-            <LogOut size={13} /> {t('Log out')}
-          </button>
         </div>
         <LegalLinks className="text-[10px]" />
       </div>

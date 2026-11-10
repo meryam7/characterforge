@@ -30,7 +30,7 @@ export default function Landing({ onAuthed, run, banner }: Props) {
           <span className="chip inline-flex items-center gap-1.5"><Sparkles size={12} /> {t('Free AI character design studio')}</span>
           <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
             {t('Design characters that')}{' '}
-            <span className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text text-transparent">{t('stay themselves')}</span>
+            <span className="brand-text">{t('stay themselves')}</span>
           </h1>
           <p className="max-w-xl text-violet-200/80">
             {t('CharaForge turns a description (and an optional reference picture) into a character you can restyle, re-pose and edit piece by piece, then export straight into your game, comic or animation.')}

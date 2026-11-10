@@ -19,7 +19,7 @@ export default function ShareView({ designId, onHome, ...actions }: GalleryActio
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between gap-3">
-        <button onClick={onHome} className="bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text font-display text-xl font-bold text-transparent">
+        <button onClick={onHome} className="brand-text font-display text-xl font-bold">
           CharaForge
         </button>
         <div className="flex items-center gap-2">

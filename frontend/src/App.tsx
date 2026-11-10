@@ -235,10 +235,9 @@ export default function App() {
           setNewCharacterSignal((n) => n + 1)
         }}
         onDelete={handleDeleteCharacter}
-        onLogout={logout}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 lg:overflow-y-auto lg:p-6">
+      <main className="flex min-w-0 flex-1 flex-col gap-4 p-4 pb-[calc(var(--notice-space,0px)+1rem)] lg:overflow-y-auto lg:p-6 lg:pb-[calc(var(--notice-space,0px)+1.5rem)]">
         {banner}
         {view === 'studio' && (
           <Suspense fallback={spinner}>
@@ -247,7 +246,7 @@ export default function App() {
         )}
         {view === 'history' && <HistoryView run={run} onOpenCharacter={openCharacter} />}
         {view === 'gallery' && <CommunityGallery {...galleryActions} />}
-        {view === 'settings' && <SettingsView user={user} setUser={setUser} run={run} onLoggedOut={resetSession} />}
+        {view === 'settings' && <SettingsView user={user} setUser={setUser} run={run} onLoggedOut={resetSession} onLogout={logout} />}
         {view === 'security' && user.is_admin && (
           <Suspense fallback={spinner}>
             <SecurityView run={run} />

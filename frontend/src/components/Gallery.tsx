@@ -16,7 +16,7 @@ export default function Gallery({ designs, selectedId, onSelect }: { designs: De
           }`}
           title={d.prompt}
         >
-          <img src={fileUrl(d.image_url)} alt={d.prompt} className="h-28 w-20 bg-white object-cover object-top" />
+          <img src={fileUrl(d.image_url)} alt={d.prompt} className="h-28 w-20 bg-[#fff] object-cover object-top" />
           <span className="absolute inset-x-0 bottom-0 bg-ink-950/80 px-1 py-0.5 text-[10px] text-violet-100">
             {d.kind === 'edit' ? t('edit') : t('design')}
             {d.consistency !== null && ` · ${Math.round(d.consistency * 100)}%`}
