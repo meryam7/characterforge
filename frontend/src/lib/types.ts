@@ -6,6 +6,7 @@ export type User = {
   is_admin: boolean
   mfa_enabled: boolean
   mfa_verified: boolean // this session passed MFA
+  email_verified: boolean
   created_at: string
 }
 
@@ -14,6 +15,7 @@ export type LoginResult =
   | { status: 'ok'; user: User; recovery_codes?: string[] }
   | { status: 'mfa_required'; challenge: string }
   | { status: 'mfa_enrol_required'; challenge: string }
+  | { status: 'verify_email_required'; challenge: string; email: string }
 
 export type MfaSetup = { secret: string; otpauth_uri: string }
 

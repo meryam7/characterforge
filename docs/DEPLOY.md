@@ -36,6 +36,7 @@ GitHub repository secrets needed: `CLOUDFLARE_API_TOKEN` (Pages Edit, D1 Edit, W
 | `MFA_ENCRYPTION_KEY` | AES-256 key for TOTP secrets at rest (base64, 32 bytes) | rotating it breaks existing MFA enrolments (users must re-enrol). Plan before rotating |
 | `LOG_HASH_SALT` | pseudonymises IPs/emails in security logs | anytime (breaks correlation with older logs only) |
 | `ALERT_WEBHOOK_URL` (optional) | Discord/Slack webhook for security alerts | anytime |
+| `EMAIL_API_KEY` (production: required) | Resend/Brevo key for verification + reset codes (`EMAIL.md`) | anytime |
 ```powershell
 node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))" | npx wrangler pages secret put MFA_ENCRYPTION_KEY --project-name characterforge --env production
 npx wrangler pages secret put ALERT_WEBHOOK_URL --project-name characterforge --env production   # paste the webhook URL

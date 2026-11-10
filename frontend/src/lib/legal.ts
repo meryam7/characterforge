@@ -20,7 +20,7 @@ const en: Record<LegalDoc, Page> = {
     intro: `This policy explains what personal data CharaForge processes, why, and your rights. Operator: ${OPERATOR}. Contact: ${CONTACT_EMAIL}.`,
     sections: [
       { h: 'What we collect', p: [
-        'Account: email address, display name, a salted hash of your password (we never store the password itself), the date you accepted these terms.',
+        'Account: email address (confirmed with a one-time code we email you), display name, a salted hash of your password (we never store the password itself), the date you accepted these terms.',
         'Two-factor authentication (if enabled): an encrypted authenticator secret and hashed recovery codes.',
         'Your content: characters (name, description, art style), prompts, reference images you upload, generated designs, likes, reports you file, and your activity history.',
         'Security data: session records, a keyed hash (pseudonym) of your IP address, request logs and security events (for example failed logins). Passwords, codes and session tokens are never written to logs.',
@@ -37,7 +37,7 @@ const en: Record<LegalDoc, Page> = {
         'Everything is private by default. A design becomes public only when you click "Share to community": it then appears in the community gallery and on its share page, with the character name, the prompt and your display name (never your email). Other members can like it and use it as the starting point of their own character. You can unshare it at any time.',
       ] },
       { h: 'Who processes your data', p: [
-        'CharaForge runs on Cloudflare (hosting, database, file storage, AI inference), which processes data on our behalf on its global network. Data may therefore be processed outside your country, with the safeguards Cloudflare provides (including EU Standard Contractual Clauses).',
+        'CharaForge runs on Cloudflare (hosting, database, file storage, AI inference), which processes data on our behalf on its global network. Verification and password-reset codes are sent by our email provider (Resend or Brevo), which receives only your email address and the message. Data may therefore be processed outside your country, with the safeguards these providers offer (including EU Standard Contractual Clauses).',
       ] },
       { h: 'How long we keep it', p: [
         'Account data and content: until you delete them or your account. "Delete account" erases your account, characters, designs, files and history from the live database immediately.',
@@ -96,7 +96,7 @@ const fr: Record<LegalDoc, Page> = {
     intro: `Cette politique explique quelles données personnelles CharaForge traite, pourquoi, et quels sont vos droits. Éditeur : ${OPERATOR}. Contact : ${CONTACT_EMAIL}.`,
     sections: [
       { h: 'Données collectées', p: [
-        'Compte : adresse e-mail, nom affiché, une empreinte salée de votre mot de passe (nous ne conservons jamais le mot de passe lui-même), la date d\'acceptation de ces conditions.',
+        'Compte : adresse e-mail (confirmée par un code à usage unique que nous vous envoyons), nom affiché, une empreinte salée de votre mot de passe (nous ne conservons jamais le mot de passe lui-même), la date d\'acceptation de ces conditions.',
         'Double authentification (si activée) : un secret d\'application d\'authentification chiffré et des codes de secours hachés.',
         'Vos contenus : personnages (nom, description, style), prompts, images de référence importées, designs générés, « j\'aime », signalements effectués et historique d\'activité.',
         'Données de sécurité : sessions, une empreinte (pseudonyme) de votre adresse IP, journaux de requêtes et événements de sécurité (par exemple les connexions échouées). Les mots de passe, codes et jetons de session ne sont jamais journalisés.',
@@ -113,7 +113,7 @@ const fr: Record<LegalDoc, Page> = {
         'Tout est privé par défaut. Un design ne devient public que si vous cliquez sur « Partager à la communauté » : il apparaît alors dans la galerie et sur sa page de partage, avec le nom du personnage, le prompt et votre nom affiché (jamais votre e-mail). Les autres membres peuvent l\'aimer et s\'en servir comme point de départ de leur propre personnage. Vous pouvez annuler le partage à tout moment.',
       ] },
       { h: 'Sous-traitants', p: [
-        'CharaForge fonctionne sur Cloudflare (hébergement, base de données, stockage, inférence IA), qui traite les données pour notre compte sur son réseau mondial. Les données peuvent donc être traitées hors de votre pays, avec les garanties fournies par Cloudflare (dont les clauses contractuelles types de l\'UE).',
+        'CharaForge fonctionne sur Cloudflare (hébergement, base de données, stockage, inférence IA), qui traite les données pour notre compte sur son réseau mondial. Les codes de vérification et de réinitialisation sont envoyés par notre prestataire d\'e-mail (Resend ou Brevo), qui ne reçoit que votre adresse et le message. Les données peuvent donc être traitées hors de votre pays, avec les garanties offertes par ces prestataires (dont les clauses contractuelles types de l\'UE).',
       ] },
       { h: 'Durées de conservation', p: [
         'Données de compte et contenus : jusqu\'à leur suppression ou celle de votre compte. « Supprimer mon compte » efface immédiatement compte, personnages, designs, fichiers et historique de la base active.',

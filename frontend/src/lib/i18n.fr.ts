@@ -86,6 +86,33 @@ export const fr: Record<string, string> = {
   'If you lose your phone, each of these codes lets you log in once. They will not be shown again, so store them somewhere safe (a password manager, or printed).':
     "Si vous perdez votre téléphone, chacun de ces codes permet de vous connecter une fois. Ils ne seront plus affichés : conservez-les en lieu sûr (gestionnaire de mots de passe ou version imprimée).",
   'I saved them': 'Je les ai enregistrés',
+  // email verification + password reset
+  'Check your email': 'Vérifiez vos e-mails',
+  'We sent a 6-digit code to {email}. Enter it to confirm that this email address is yours.':
+    'Nous avons envoyé un code à 6 chiffres à {email}. Saisissez-le pour confirmer que cette adresse vous appartient.',
+  'Confirm my email': 'Confirmer mon e-mail',
+  'Send a new code': 'Renvoyer un code',
+  'Send a new code ({n} s)': 'Renvoyer un code ({n} s)',
+  'Sending a new code': "Envoi d'un nouveau code",
+  "Can't find it? Check your spam folder. The code expires in 15 minutes.":
+    'Introuvable ? Regardez dans vos spams. Le code expire dans 15 minutes.',
+  'Forgot password?': 'Mot de passe oublié ?',
+  'Forgot your password?': 'Mot de passe oublié ?',
+  'Enter your email: we will send you a code to choose a new password.':
+    'Saisissez votre e-mail : nous vous enverrons un code pour choisir un nouveau mot de passe.',
+  'Send me a code': "M'envoyer un code",
+  'Sending the code': 'Envoi du code',
+  'If an account exists for this email, we sent it a 6-digit code.': 'Si un compte existe pour cet e-mail, nous lui avons envoyé un code à 6 chiffres.',
+  'Choose a new password': 'Choisissez un nouveau mot de passe',
+  'Save new password': 'Enregistrer le nouveau mot de passe',
+  'Saving your new password': 'Enregistrement du nouveau mot de passe',
+  'Password changed. You can log in now.': 'Mot de passe modifié. Vous pouvez vous connecter.',
+  'Wrong or expired code': 'Code incorrect ou expiré',
+  'Please wait a minute before asking for a new code': "Patientez une minute avant de demander un nouveau code",
+  "We couldn't send the email right now. Please try again in a few minutes.":
+    "Impossible d'envoyer l'e-mail pour le moment. Réessayez dans quelques minutes.",
+  'An account with this email already exists. If it\'s yours, use "Forgot password?"':
+    'Un compte existe déjà avec cet e-mail. S\'il est à vous, utilisez « Mot de passe oublié ? »',
 
   // ---------------------------------------------------------------- sidebar / nav
   'Design characters that stay themselves.': 'Des personnages qui restent eux-mêmes.',

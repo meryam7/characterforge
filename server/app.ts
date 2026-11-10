@@ -6,6 +6,7 @@ import type { AppEnv } from './env'
 import { ApiError } from './http'
 import { authenticate, authorize, csrfProtection, generalRateLimit, requestContext, securityHeaders } from './middleware'
 import admin from './routes/admin'
+import testRoutes from './routes/test'
 import aiRoutes from './routes/ai'
 import auth from './routes/auth'
 import characters from './routes/characters'
@@ -39,6 +40,7 @@ app.route('/gallery', gallery)
 app.route('/ai', aiRoutes)
 app.route('/files', files)
 app.route('/admin', admin)
+app.route('/test', testRoutes)
 
 app.notFound((c) => c.json({ detail: 'Not found' }, 404))
 app.onError((err, c) => {

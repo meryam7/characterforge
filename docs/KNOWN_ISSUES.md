@@ -12,6 +12,8 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
    `--dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`. `*.r2.cloudflarestorage.com` is unreachable.
 
 ## Open
+- Production needs an email provider key (`EMAIL_API_KEY`, `docs/EMAIL.md`) before sign-ups can work: verification is mandatory.
+- Staging/local sign-up limit is 200/hour per IP (`SIGNUP_LIMIT_PER_HOUR`), production 20: the test suites create many accounts.
 - Local dev through Vite (:5173 → wrangler :8788): the CSRF Origin check accepts the local dev origins only when
   `ENVIRONMENT = "development"` (top-level `[vars]` in wrangler.toml). Never set that value on staging/production.
 - Legal pages contain placeholders (`OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` in `frontend/src/lib/legal.ts`): fill them

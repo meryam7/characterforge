@@ -27,3 +27,7 @@ TOTP secrets are encrypted with `MFA_ENCRYPTION_KEY`, and IPs and emails in logs
 `likes` (user_id, design_id) PK · `designs.like_count` (denormalised, popular index) · `characters.remixed_from` (design id) ·
 `reports` (design_id, reporter_id UNIQUE, reason, note, status open|dismissed|removed, resolved_at) ·
 `users.terms_version`, `users.terms_accepted_at`. All cascade with their user/design.
+
+## Added in 0004_email_verification
+`users.email_verified` (existing accounts set to 1) · `email_codes` (user_id, purpose verify|reset, code_hash, attempts,
+expires_at, created_at) · `test_inbox` (non-production only: codes for @example.com test addresses).

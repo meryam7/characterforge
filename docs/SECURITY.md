@@ -24,6 +24,15 @@ Run the checks: `npm run check:security` (static), `npm run test:security` (78 l
 | **Backups** | daily encrypted (AES-256-GCM, scrypt key) D1 exports + D1 Time Travel. Restore tested in a scratch database. See `BACKUP.md` | `restore-test.mjs` (counts, image bytes, fingerprint, integrity) |
 | **Testing environment** | staging = separate Pages environment, D1 database and secrets. Every change goes staging → tests → production (`DEPLOY.md`) | CI `staging` job |
 
+## Email ownership (2026-11-10)
+- Sign-up isn't complete until the 6-digit code emailed to the address is typed: an account can't be created with a
+  stolen or someone else's email, and an unverified account never gets a session.
+- Codes: CSPRNG, hashed at rest, 15-minute validity, 5 attempts, single use, 60 s resend cooldown + hourly limits.
+  Login of an unverified account re-uses the code already sent (no inbox flooding).
+- Password reset by email code: same answer whether or not the account exists, revokes all sessions, MFA still needed.
+- Email delivery via Resend/Brevo (secret `EMAIL_API_KEY`). Test inbox only outside production and only for
+  @example.com. Setup: `docs/EMAIL.md`. Tested by 108 checks in `security-test.mjs` (staging).
+
 ## Community features (2026-11-10)
 - Public routes added: `GET /api/gallery/:id` and the `/d/:id` page: both return only designs whose owner shared them
   (private → 404 / default page; tested). Likes, remix and reports require a session and only work on shared designs.
@@ -45,7 +54,7 @@ Examined and found sound: MFA enrolment cannot overwrite an enabled factor; chal
 ## Accepted risks / follow-ups
 - The per-IP general limiter is in memory (per isolate). Durable limits cover the sensitive endpoints. For stronger DDoS
   protection, add a custom domain and Cloudflare WAF rate-limiting rules.
-- There's no email verification or password reset yet (needs an email provider). Account recovery is via MFA recovery codes only.
+- Account recovery: "Forgot password?" by email code (docs/EMAIL.md); MFA recovery codes for lost phones.
 - Staging is publicly reachable (test data only). Protect it with Cloudflare Access (free for up to 50 users) if needed.
 - The edge doesn't cache shared images any more (private by default). That's a small cost in D1 reads.
 - The browser test leaves no data, but some earlier failed runs left MFA-protected test accounts on staging (example.com).

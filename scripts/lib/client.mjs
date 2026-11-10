@@ -45,7 +45,19 @@ export class Client {
       body = JSON.stringify(json)
     }
     if (form) body = form
-    const res = await fetch(BASE + path, { method, headers: h, body, redirect: 'manual' })
+    // retry only when the connection was never made (the request can't have reached the server) - flaky networks
+    let res
+    for (let attempt = 1; ; attempt++) {
+      try {
+        res = await fetch(BASE + path, { method, headers: h, body, redirect: 'manual' })
+        break
+      } catch (err) {
+        const code = err?.cause?.code ?? ''
+        const neverSent = ['UND_ERR_CONNECT_TIMEOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(code) || (method === 'GET' && code === 'ECONNRESET')
+        if (!neverSent || attempt >= 4) throw err
+        await new Promise((r) => setTimeout(r, 1500 * attempt))
+      }
+    }
     this.absorb(res)
     const type = res.headers.get('content-type') ?? ''
     const data = type.includes('json') ? await res.json() : await res.arrayBuffer()
@@ -91,8 +103,22 @@ export const PASSWORD = 'Sm0ke-test-passphrase'
 export async function register(tag, { email } = {}) {
   const c = new Client()
   c.email = email ?? `smoke-${RUN}-${tag}@example.com`
-  c.res = await c.call('POST', '/api/auth/register', { json: { email: c.email, password: PASSWORD, display_name: `Smoke ${tag}`, accept_terms: true } })
+  c.signup = await c.call('POST', '/api/auth/register', { json: { email: c.email, password: PASSWORD, display_name: `Smoke ${tag}`, accept_terms: true } })
+  c.res = await completeEmail(c, c.signup)
   return c
+}
+
+/** Reads the latest code for an @example.com address from the staging/dev test inbox. */
+export async function inboxCode(email, purpose = 'verify') {
+  const r = await new Client().call('GET', `/api/test/inbox?email=${encodeURIComponent(email)}&purpose=${purpose}`)
+  return r.status === 200 ? r.data.code : null
+}
+
+/** If the server asks for email verification, type the code from the test inbox (like a user would). */
+export async function completeEmail(client, res) {
+  if (res.data?.status !== 'verify_email_required') return res
+  const code = await inboxCode(client.email)
+  return client.call('POST', '/api/auth/email/verify', { json: { challenge: res.data.challenge, code } })
 }
 
 // ---- TOTP (RFC 6238) for MFA tests

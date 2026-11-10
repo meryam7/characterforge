@@ -4,7 +4,7 @@
 // Covers: headers/HTTPS, cookie flags, CSRF, deny-by-default, IDOR (object-level authz), SQL injection, XSS payload
 // handling, input validation, rate limiting + alerts, MFA (TOTP, replay, recovery codes), admin MFA enforcement,
 // session revocation, and that logs never contain secrets.
-import { BASE, Client, designForm, done, freshStep, ok, PASSWORD, RUN, register, totp } from './lib/client.mjs'
+import { BASE, Client, completeEmail, designForm, done, freshStep, inboxCode, ok, PASSWORD, RUN, register, totp } from './lib/client.mjs'
 
 const t0 = Date.now()
 const anon = new Client()
@@ -35,6 +35,42 @@ const sc = a.res.setCookies.join('\n')
 ok(/__Host-session=[^;]+;.*HttpOnly/i.test(sc) && /__Host-session=.*Secure/i.test(sc) && /__Host-session=.*SameSite=Lax/i.test(sc) && /__Host-session=.*Path=\//i.test(sc), 'session cookie: __Host-, Secure, HttpOnly, SameSite=Lax, Path=/')
 const csrfLine = a.res.setCookies.find((l) => l.startsWith('__Host-csrf')) ?? ''
 ok(/Secure/i.test(csrfLine) && /SameSite=Strict/i.test(csrfLine) && !/HttpOnly/i.test(csrfLine), 'CSRF cookie: Secure, SameSite=Strict, readable by the page')
+
+// ---------------------------------------------------------------- email ownership (verification code)
+const v = new Client()
+v.email = `verify-${RUN}@example.com`
+const su = await v.call('POST', '/api/auth/register', { json: { email: v.email, password: PASSWORD, display_name: 'Verify me', accept_terms: true } })
+ok(su.data.status === 'verify_email_required' && !v.jar.has('__Host-session'), 'sign-up gives NO session until the email code is confirmed')
+ok((await v.call('GET', '/api/characters')).status === 401, 'unverified account cannot use the app')
+const relog = await v.call('POST', '/api/auth/login', { json: { email: v.email, password: PASSWORD } })
+ok(relog.data.status === 'verify_email_required' && !v.jar.has('__Host-session'), `login right after sign-up -> "check your email" again, no session (${relog.status})`)
+ok((await v.call('POST', '/api/auth/email/resend', { json: { challenge: su.data.challenge } })).status === 429, 'resend has a 60 s cooldown')
+const vcode = await inboxCode(v.email)
+ok(/^\d{6}$/.test(vcode ?? ''), 'a 6-digit code was "emailed"')
+const wrong = vcode === '000000' ? '111111' : '000000'
+ok((await v.call('POST', '/api/auth/email/verify', { json: { challenge: su.data.challenge, code: wrong } })).status === 401, 'wrong email code rejected')
+const fresh = relog.data.challenge ?? su.data.challenge
+const okv = await v.call('POST', '/api/auth/email/verify', { json: { challenge: fresh, code: vcode } })
+ok(okv.status === 200 && okv.data.status === 'ok' && v.jar.has('__Host-session'), 'correct email code -> account verified + session')
+ok((await new Client().call('GET', `/api/test/inbox?email=${encodeURIComponent('someone@gmail.com')}`)).status === 422, 'test inbox only serves @example.com addresses')
+cleanup.push(v)
+
+// password reset by email code
+const ghost = await new Client().call('POST', '/api/auth/password/forgot', { json: { email: `nobody-${RUN}@example.com` } })
+const real = await new Client().call('POST', '/api/auth/password/forgot', { json: { email: v.email } })
+ok(ghost.status === 200 && real.status === 200 && JSON.stringify(ghost.data) === JSON.stringify(real.data), 'forgot-password answers the same for unknown emails (no account discovery)')
+const other2 = new Client()
+await other2.call('POST', '/api/auth/login', { json: { email: v.email, password: PASSWORD } })
+ok((await new Client().call('POST', '/api/auth/password/reset', { json: { email: v.email, code: '123456', new_password: 'Brand-new-passphrase-1' } })).status === 400, 'reset with a wrong code -> 400')
+const rc2 = await inboxCode(v.email, 'reset')
+const RESET_PW = 'Brand-new-passphrase-1'
+ok((await new Client().call('POST', '/api/auth/password/reset', { json: { email: v.email, code: rc2, new_password: RESET_PW } })).status === 200, 'reset with the emailed code -> 200')
+ok((await new Client().call('POST', '/api/auth/password/reset', { json: { email: v.email, code: rc2, new_password: 'Another-passphrase-22' } })).status === 400, 'reset code works only once')
+ok((await v.call('GET', '/api/auth/me')).status === 401, 'password reset logs out every existing session')
+ok((await new Client().call('POST', '/api/auth/login', { json: { email: v.email, password: PASSWORD } })).status === 401, 'old password no longer works')
+const v2 = new Client()
+ok((await v2.call('POST', '/api/auth/login', { json: { email: v.email, password: RESET_PW } })).data.status === 'ok', 'new password works')
+v.password = RESET_PW
 
 // ---------------------------------------------------------------- CSRF
 const noToken = await a.call('POST', '/api/characters', { json: { name: 'x' }, csrf: false })
@@ -188,8 +224,10 @@ ok(limited, 'login brute force -> 429')
 // ---------------------------------------------------------------- admin: MFA mandatory, logs, alerts
 if (ADMIN) {
   const adm = new Client()
+  adm.email = ADMIN
   let res = await adm.call('POST', '/api/auth/login', { json: { email: ADMIN, password: PASSWORD } })
   if (res.status === 401) res = await adm.call('POST', '/api/auth/register', { json: { email: ADMIN, password: PASSWORD, display_name: 'Admin', accept_terms: true } })
+  res = await completeEmail(adm, res)
   ok(res.data.status === 'mfa_enrol_required' && !adm.jar.has('__Host-session'), 'admin gets no session before MFA enrolment')
   const es = (await adm.call('POST', '/api/auth/mfa/enrol/start', { json: { challenge: res.data.challenge } })).data
   await freshStep()

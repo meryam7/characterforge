@@ -45,7 +45,8 @@ for (const file of walk(path.join(root, 'server'), ['.ts'])) {
 
 // ---- 2. bundle must not leak secrets
 const SECRET_PATTERNS = [
-  [/MFA_ENCRYPTION_KEY|LOG_HASH_SALT|ALERT_WEBHOOK_URL|CLOUDFLARE_API_TOKEN/, 'secret variable name'],
+  [/MFA_ENCRYPTION_KEY|LOG_HASH_SALT|ALERT_WEBHOOK_URL|CLOUDFLARE_API_TOKEN|EMAIL_API_KEY/, 'secret variable name'],
+  [/re_[A-Za-z0-9]{20,}|xkeysib-[a-f0-9]{20,}/, 'email provider API key'],
   [/cfat_[A-Za-z0-9]{20,}/, 'Cloudflare API token'],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'private key'],
   [/https:\/\/(discord(app)?\.com\/api\/webhooks|hooks\.slack\.com)\//, 'webhook URL'],

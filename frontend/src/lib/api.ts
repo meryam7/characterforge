@@ -78,9 +78,14 @@ async function image(path: string, body: unknown) {
 
 export const api = {
   // auth + account
-  register: (email: string, password: string, display_name: string, accept_terms: boolean) =>
-    json<LoginResult>('/api/auth/register', post({ email, password, display_name, accept_terms })),
-  login: (email: string, password: string) => json<LoginResult>('/api/auth/login', post({ email, password })),
+  register: (email: string, password: string, display_name: string, accept_terms: boolean, lang: string) =>
+    json<LoginResult>('/api/auth/register', post({ email, password, display_name, accept_terms, lang })),
+  login: (email: string, password: string, lang: string) => json<LoginResult>('/api/auth/login', post({ email, password, lang })),
+  emailVerify: (challenge: string, code: string, lang: string) => json<LoginResult>('/api/auth/email/verify', post({ challenge, code, lang })),
+  emailResend: (challenge: string, lang: string) => json<{ ok: boolean }>('/api/auth/email/resend', post({ challenge, lang })),
+  forgotPassword: (email: string, lang: string) => json<{ ok: boolean }>('/api/auth/password/forgot', post({ email, lang })),
+  resetPassword: (email: string, code: string, new_password: string) =>
+    json<{ ok: boolean }>('/api/auth/password/reset', post({ email, code, new_password })),
   mfaVerify: (challenge: string, code: string) => json<LoginResult>('/api/auth/mfa/verify', post({ challenge, code })),
   mfaEnrolStart: (challenge: string) => json<MfaSetup>('/api/auth/mfa/enrol/start', post({ challenge })),
   mfaEnrolFinish: (challenge: string, code: string) => json<LoginResult>('/api/auth/mfa/enrol/finish', post({ challenge, code })),

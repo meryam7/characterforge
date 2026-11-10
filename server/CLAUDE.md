@@ -15,7 +15,9 @@ admin+MFA) → route → `ownedCharacter(c, id)`/`ownedDesign(c, id)` → D1 (pr
 | Method | Path | File |
 |---|---|---|
 | GET | `/api/health` | app.ts |
-| POST | `/api/auth/register`, `/api/auth/login` (D1 rate limits) | routes/auth.ts |
+| POST | `/api/auth/register`, `/api/auth/login` (D1 rate limits) → may answer `verify_email_required` | routes/auth.ts |
+| POST | `/api/auth/email/{verify,resend}`, `/api/auth/password/{forgot,reset}` (email codes, `server/email.ts`) | routes/auth.ts |
+| GET | `/api/test/inbox?email=…@example.com` (404 in production) | routes/test.ts |
 | GET/DELETE | `/api/auth/me` | routes/auth.ts |
 | GET/POST | `/api/characters` | routes/characters.ts |
 | GET/DELETE | `/api/characters/:id` | routes/characters.ts |

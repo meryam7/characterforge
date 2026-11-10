@@ -60,3 +60,9 @@ SecuritySummary { last_24h[], recent_alerts[], users{n,mfa}, active_sessions }  
 | GET `/admin/reports` · POST `/admin/reports/:designId/resolve` `{action: "dismiss" or "remove"}` | admin + MFA | moderation queue; remove = unpublish + `admin_takedown` alert |
 | GET `/d/:id` (not under /api) | public | SPA HTML with og/twitter tags of the shared design |
 `POST /auth/register` now requires `accept_terms: true` (stored as `terms_version` + `terms_accepted_at`).
+
+## Email ownership & password reset (added 2026-11-10, details in EMAIL.md)
+`POST /auth/register` and `/auth/login` answer `{status: "verify_email_required", challenge, email}` until the emailed
+code is confirmed (no session before that). `POST /auth/email/verify {challenge, code}` · `POST /auth/email/resend {challenge}` ·
+`POST /auth/password/forgot {email}` (always `{ok:true}`) · `POST /auth/password/reset {email, code, new_password}`.
+`User` now has `email_verified`. `GET /test/inbox?email=…@example.com&purpose=verify|reset` exists outside production only.

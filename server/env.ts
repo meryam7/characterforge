@@ -7,11 +7,15 @@ export type Env = {
   MFA_ENCRYPTION_KEY: string // base64, 32 bytes: encrypts TOTP secrets at rest (AES-256-GCM)
   LOG_HASH_SALT: string // pseudonymises IPs/emails in logs
   ALERT_WEBHOOK_URL?: string // optional Discord/Slack webhook for security alerts
+  EMAIL_API_KEY?: string // Resend or Brevo API key (email verification + password reset)
   // --- plain vars (wrangler.toml) ---
   ENVIRONMENT: string // production | staging | development
+  EMAIL_PROVIDER?: string // resend | brevo | log (log = print codes, dev/staging only)
+  EMAIL_FROM?: string // sender, e.g. "CharaForge <no-reply@yourdomain.com>"
   ADMIN_EMAILS: string // comma-separated; admins must use MFA
   AI_DAILY_LIMIT: string
   AI_ENABLED: string
+  SIGNUP_LIMIT_PER_HOUR?: string // sign-ups per IP per hour (default 20; higher on test environments)
 }
 
 export type UserRow = {
@@ -23,6 +27,7 @@ export type UserRow = {
   mfa_enabled: number
   mfa_last_step: number
   password_changed_at: string | null
+  email_verified: number
   created_at: string
 }
 

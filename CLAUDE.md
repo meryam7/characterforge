@@ -29,6 +29,7 @@ drawing, region selection, compositing, background removal, zips. `server/` (Hon
 | Validation + `ApiError`/`fail()` + time helpers | `server/http.ts` |
 | Ownership checks, files, history `recordActivity`, rate limit, output shapes | `server/db.ts` |
 | PBKDF2 passwords, password policy | `server/security.ts` |
+| Email codes (verification, password reset), Resend/Brevo delivery | `server/email.ts` (setup: `docs/EMAIL.md`) |
 | Workers AI models, prompt building, `STYLES`, `NEGATIVE` | `server/ai.ts` |
 | Routes | `server/routes/{auth,characters,history,gallery,ai,files,admin}.ts` |
 | DB schema | `migrations/*.sql` (D1) |
@@ -44,7 +45,7 @@ drawing, region selection, compositing, background removal, zips. `server/` (Hon
 | Encrypted backup · restore test | `scripts/backup.mjs` · `scripts/restore-test.mjs` |
 
 Deeper docs (open on demand): `docs/ARCHITECTURE.md`, `API.md`, `DATA_MODEL.md`, `AI_PIPELINE.md`, `FRONTEND.md`,
-`EXPORT_GODOT.md`, `KNOWN_ISSUES.md`, `RECIPES.md`, `DEPLOY.md`, `LAUNCH.md`, **`SECURITY.md`**, `BACKUP.md`. Server area guide: `server/CLAUDE.md`.
+`EXPORT_GODOT.md`, `KNOWN_ISSUES.md`, `RECIPES.md`, `DEPLOY.md`, `LAUNCH.md`, **`SECURITY.md`**, `BACKUP.md`, `EMAIL.md`. Server area guide: `server/CLAUDE.md`.
 
 ## Commands (repo root)
 ```powershell
@@ -86,7 +87,9 @@ falls back to placeholder art. Test AI against staging.
   entry too. AI prompts stay English (the models understand English best).
 - Legal: `lib/legal.ts` must describe what the code really does. Bump `LEGAL_VERSION` + `TERMS_VERSION` (auth.ts)
   together on material changes. `OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` are still placeholders for the owner.
-- Secrets: `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`, optional `ALERT_WEBHOOK_URL`, stored as Pages secrets per environment
+- Accounts are usable only after the emailed 6-digit code is confirmed (`email_verified`). Tests get codes for
+  `@example.com` addresses from `/api/test/inbox` (non-production only) via `completeEmail()` in `scripts/lib/client.mjs`.
+- Secrets: `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`, `EMAIL_API_KEY` (production), optional `ALERT_WEBHOOK_URL`, stored as Pages secrets per environment
   (`.dev.vars` locally), server-only. Vars live in `wrangler.toml`. Deploy staging → test → production, never the reverse.
 
 ## Environment notes

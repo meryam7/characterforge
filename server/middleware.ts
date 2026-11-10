@@ -23,6 +23,9 @@ const PUBLIC: [string, RegExp][] = [
   ['GET', /^\/api\/auth\/csrf$/],
   ['POST', /^\/api\/auth\/(register|login)$/],
   ['POST', /^\/api\/auth\/mfa\/(verify|enrol\/start|enrol\/finish)$/], // need a short-lived login challenge instead
+  ['POST', /^\/api\/auth\/email\/(verify|resend)$/], // need an email_verify challenge (issued after the password)
+  ['POST', /^\/api\/auth\/password\/(forgot|reset)$/], // reset needs the code sent to the mailbox
+  ['GET', /^\/api\/test\/inbox$/], // 404 in production; @example.com test addresses only (routes/test.ts)
   ['GET', /^\/api\/gallery$/],
   ['GET', /^\/api\/gallery\/\d+$/], // single shared design (share pages)
   ['GET', /^\/api\/files\/[drt]\/[a-f0-9]{32}\.(webp|png|jpg)$/], // owner or public design only (checked in route)

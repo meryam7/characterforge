@@ -5,7 +5,9 @@
  *     → {status:"ok", user}                        (no MFA)            + session cookie
  *     → {status:"mfa_required", challenge}         (MFA enabled)       → POST /mfa/verify {challenge, code}
  *     → {status:"mfa_enrol_required", challenge}   (admin without MFA) → POST /mfa/enrol/start, /mfa/enrol/finish
- * Admins (ADMIN_EMAILS) can never get a session without MFA. */
+ *     → {status:"verify_email_required", challenge, email} (email not confirmed yet) → POST /email/verify {challenge, code}
+ * Sign-up always ends in "verify_email_required": a 6-digit code is emailed and the account gets no session until the
+ * owner of the inbox types it (proves the email address belongs to them). Admins can never get a session without MFA. */
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { decryptSecret, encryptSecret, randomToken, sha256 } from '../crypto'
@@ -13,11 +15,13 @@ import { isAdmin, rateLimit } from '../db'
 import type { AppEnv, UserRow } from '../env'
 import { EMAIL, fail, jsonBody, str } from '../http'
 import { logEvent } from '../security-log'
+import { checkCode, pickLang, sendCode } from '../email'
 import { DUMMY_HASH, hashPassword, passwordProblem, verifyPassword } from '../security'
 import { createSession, destroySession, issueCsrf, revokeSessions } from '../session'
 import { newTotpSecret, otpauthUri, verifyTotp } from '../totp'
 
 const CHALLENGE_TTL = 300
+const EMAIL_CHALLENGE_TTL = 30 * 60 // time to open the mailbox and type the code
 /** Version of the Terms of Use + Privacy Policy users accept at sign-up (frontend/src/lib/legal.ts LEGAL_VERSION). */
 export const TERMS_VERSION = '2026-11-10'
 const nowSec = () => Math.floor(Date.now() / 1000)
@@ -29,22 +33,25 @@ export const userOut = (c: Context<AppEnv>, u: UserRow) => ({
   is_admin: isAdmin(c.env, u.email),
   mfa_enabled: !!u.mfa_enabled,
   mfa_verified: !!c.get('session')?.mfa,
+  email_verified: !!u.email_verified,
   created_at: u.created_at,
 })
 
 const auth = new Hono<AppEnv>()
 
 // ------------------------------------------------------------------ helpers
-async function newChallenge(c: Context<AppEnv>, userId: number, kind: 'mfa_verify' | 'mfa_enrol') {
+type ChallengeKind = 'mfa_verify' | 'mfa_enrol' | 'email_verify'
+
+async function newChallenge(c: Context<AppEnv>, userId: number, kind: ChallengeKind) {
   const token = randomToken(32)
   await c.env.DB.prepare('INSERT INTO auth_challenges (id_hash, user_id, kind, expires_at) VALUES (?, ?, ?, ?)')
-    .bind(await sha256(token), userId, kind, nowSec() + CHALLENGE_TTL)
+    .bind(await sha256(token), userId, kind, nowSec() + (kind === 'email_verify' ? EMAIL_CHALLENGE_TTL : CHALLENGE_TTL))
     .run()
   return token
 }
 
 /** Loads a live challenge and counts the attempt (max 5). */
-async function useChallenge(c: Context<AppEnv>, token: unknown, kind: 'mfa_verify' | 'mfa_enrol'): Promise<UserRow & { ch_hash: string }> {
+async function useChallenge(c: Context<AppEnv>, token: unknown, kind: ChallengeKind): Promise<UserRow & { ch_hash: string }> {
   if (typeof token !== 'string' || token.length < 20 || token.length > 100) return fail(401, 'Login expired - start again')
   const hash = await sha256(token)
   const row = await c.env.DB.prepare(
@@ -57,6 +64,26 @@ async function useChallenge(c: Context<AppEnv>, token: unknown, kind: 'mfa_verif
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(row.user_id).first<UserRow>()
   if (!user) return fail(401, 'Login expired - start again')
   return { ...user, ch_hash: hash }
+}
+
+/** a***@gmail.com: enough for the user to recognise the address, without echoing it in full. */
+const maskEmail = (e: string) => e.replace(/^(.)[^@]*(@.*)$/, (_, a: string, d: string) => `${a}***${d}`)
+
+/** After the password (or a code) is accepted: next required step, or a session. Order: email → MFA → session. */
+async function nextStep(c: Context<AppEnv>, user: UserRow, lang: 'en' | 'fr', status = 200) {
+  if (!user.email_verified) {
+    await sendCode(c, user, 'verify', lang, { reuseRecent: true })
+    return c.json({ status: 'verify_email_required', challenge: await newChallenge(c, user.id, 'email_verify'), email: maskEmail(user.email) }, status as 200)
+  }
+  if (isAdmin(c.env, user.email) && !user.mfa_enabled) {
+    return c.json({ status: 'mfa_enrol_required', challenge: await newChallenge(c, user.id, 'mfa_enrol') }, status as 200)
+  }
+  if (user.mfa_enabled) {
+    return c.json({ status: 'mfa_required', challenge: await newChallenge(c, user.id, 'mfa_verify') }, status as 200)
+  }
+  await createSession(c, user.id, false)
+  await logEvent(c, 'login_success', 'info', { userId: user.id })
+  return c.json({ status: 'ok', user: userOut(c, user) }, status as 200)
 }
 
 const mfaKey = (c: Context<AppEnv>) => c.env.MFA_ENCRYPTION_KEY || fail(500, 'Server misconfigured: MFA key missing')
@@ -132,9 +159,9 @@ auth.post('/register', async (c) => {
   const problem = passwordProblem(body.password, email)
   if (problem) fail(422, problem)
   if (body.accept_terms !== true) fail(422, 'accept_terms: you must accept the Terms of Use and Privacy Policy')
-  await rateLimit(c, `register:${c.get('ipHash')}`, 20, 3600)
+  await rateLimit(c, `register:${c.get('ipHash')}`, Number(c.env.SIGNUP_LIMIT_PER_HOUR || 20), 3600)
   if (await c.env.DB.prepare('SELECT 1 FROM users WHERE email = ?').bind(email).first()) {
-    fail(409, 'An account with this email already exists')
+    fail(409, "An account with this email already exists. If it's yours, use \"Forgot password?\"")
   }
   const user = await c.env.DB.prepare(
     "INSERT INTO users (email, display_name, password_hash, terms_version, terms_accepted_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now')) RETURNING *",
@@ -142,12 +169,8 @@ auth.post('/register', async (c) => {
     .bind(email, name, await hashPassword(body.password as string), TERMS_VERSION)
     .first<UserRow>()
   await logEvent(c, 'account_created', 'info', { userId: user!.id })
-  if (isAdmin(c.env, email)) {
-    // admin accounts must set up MFA before getting a session
-    return c.json({ status: 'mfa_enrol_required', challenge: await newChallenge(c, user!.id, 'mfa_enrol') }, 201)
-  }
-  await createSession(c, user!.id, false)
-  return c.json({ status: 'ok', user: userOut(c, user!) }, 201)
+  // no session yet: the code sent by email must be confirmed first
+  return nextStep(c, user!, pickLang(body.lang), 201)
 })
 
 auth.post('/login', async (c) => {
@@ -161,16 +184,73 @@ auth.post('/login', async (c) => {
     await logEvent(c, 'login_failed', 'warn', { userId: user?.id ?? null, subject: email, detail: { known_account: !!user } })
     fail(401, 'Wrong email or password')
   }
-  const admin = isAdmin(c.env, user!.email)
-  if (admin && !user!.mfa_enabled) {
-    return c.json({ status: 'mfa_enrol_required', challenge: await newChallenge(c, user!.id, 'mfa_enrol') })
+  return nextStep(c, user!, pickLang(body.lang))
+})
+
+// ------------------------------------------------------------------ email ownership
+auth.post('/email/verify', async (c) => {
+  const body = await jsonBody(c.req.raw)
+  const user = await useChallenge(c, body.challenge, 'email_verify')
+  await rateLimit(c, `email-code:${user.id}`, 20, 3600)
+  if (!(await checkCode(c.env.DB, user.id, 'verify', body.code))) {
+    await logEvent(c, 'email_code_failed', 'warn', { userId: user.id, subject: user.email })
+    fail(401, 'Wrong or expired code')
   }
-  if (user!.mfa_enabled) {
-    return c.json({ status: 'mfa_required', challenge: await newChallenge(c, user!.id, 'mfa_verify') })
+  await c.env.DB.batch([
+    c.env.DB.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').bind(user.id),
+    c.env.DB.prepare('DELETE FROM auth_challenges WHERE id_hash = ?').bind(user.ch_hash),
+  ])
+  await logEvent(c, 'email_verified', 'info', { userId: user.id })
+  return nextStep(c, { ...user, email_verified: 1 }, pickLang(body.lang))
+})
+
+auth.post('/email/resend', async (c) => {
+  const body = await jsonBody(c.req.raw)
+  const user = await useChallenge(c, body.challenge, 'email_verify')
+  await rateLimit(c, `email-send:${user.id}`, 5, 3600)
+  await rateLimit(c, `email-send-ip:${c.get('ipHash')}`, 20, 3600)
+  await sendCode(c, user, 'verify', pickLang(body.lang))
+  return c.json({ ok: true })
+})
+
+// ------------------------------------------------------------------ forgot / reset password (code by email)
+/** Always answers the same way, so it can't be used to find out which emails have an account. */
+auth.post('/password/forgot', async (c) => {
+  const body = await jsonBody(c.req.raw)
+  const email = str(body.email, 'email', { max: 254 }).toLowerCase()
+  await rateLimit(c, `forgot-ip:${c.get('ipHash')}`, 10, 3600)
+  await rateLimit(c, `forgot:${await sha256(email)}`, 3, 3600)
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>()
+  if (user) {
+    try {
+      await sendCode(c, user, 'reset', pickLang(body.lang))
+    } catch {
+      /* cooldown or provider error: same answer either way */
+    }
+    await logEvent(c, 'password_reset_requested', 'info', { userId: user.id })
   }
-  await createSession(c, user!.id, false)
-  await logEvent(c, 'login_success', 'info', { userId: user!.id })
-  return c.json({ status: 'ok', user: userOut(c, user!) })
+  return c.json({ ok: true })
+})
+
+auth.post('/password/reset', async (c) => {
+  const body = await jsonBody(c.req.raw)
+  const email = str(body.email, 'email', { max: 254 }).toLowerCase()
+  await rateLimit(c, `reset-ip:${c.get('ipHash')}`, 30, 3600)
+  const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<UserRow>()
+  if (!user || !(await checkCode(c.env.DB, user.id, 'reset', body.code))) {
+    await logEvent(c, 'password_reset_failed', 'warn', { userId: user?.id ?? null, subject: email })
+    fail(400, 'Wrong or expired code')
+  }
+  const problem = passwordProblem(body.new_password, email)
+  if (problem) fail(422, problem)
+  await c.env.DB.batch([
+    // receiving the code also proves the address is theirs
+    c.env.DB.prepare("UPDATE users SET password_hash = ?, password_changed_at = strftime('%Y-%m-%dT%H:%M:%SZ','now'), email_verified = 1 WHERE id = ?")
+      .bind(await hashPassword(body.new_password as string), user!.id),
+    revokeSessions(c.env.DB, user!.id), // log out everywhere (a thief's session too)
+  ])
+  await logEvent(c, 'password_reset', 'warn', { userId: user!.id })
+  return c.json({ ok: true }) // MFA (if enabled) is still required at the next login
 })
 
 auth.post('/mfa/verify', async (c) => {

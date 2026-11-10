@@ -13,7 +13,8 @@ ok((await anon.call('GET', '/')).status === 200, 'frontend served at /')
 
 // auth
 const a = await register('a')
-ok(a.res.status === 201 && a.res.data.status === 'ok' && a.jar.has('__Host-session'), 'register -> session cookie')
+ok(a.signup.status === 201 && a.signup.data.status === 'verify_email_required' && a.signup.data.email.includes('***@example.com'), 'register -> email code required (no session yet)')
+ok(a.res.status === 200 && a.res.data.status === 'ok' && a.jar.has('__Host-session') && a.res.data.user.email_verified, 'email code confirmed -> session cookie')
 ok(!('token' in a.res.data), 'no token in response body (cookie only)')
 ok((await anon.call('POST', '/api/auth/register', { json: { email: a.email, password: PASSWORD, display_name: 'Dup', accept_terms: true } })).status === 409, 'duplicate email -> 409')
 const login = new Client()
