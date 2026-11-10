@@ -13,6 +13,12 @@ Already built into the app:
 4. Watch the Workers AI daily allowance (Dashboard > AI). When it runs out, visitors get preview art until the next day. Lower `AI_DAILY_LIMIT` if many people sign up.
 5. Pitch the workflow (identity lock, click-to-edit, Godot/sprite export), not raw image quality (SD 1.5 class models).
 
+## Built-in growth loops (2026-11-10)
+- Every shared design has a share link `/d/<id>` with a rich preview (image, character, author) for WhatsApp, Discord,
+  X, Facebook, LinkedIn. "Copy share link" is in the studio Export panel and on every gallery card.
+- Likes + a "Popular" tab reward good work; "Start from this" turns any shared design into a new user's first character.
+- English + French (auto-detected): post in French communities too (r/jeuxvideo, francophone Discords, France/Maghreb/Québec).
+
 ## Where to post (game devs and artists)
 | Channel | Angle |
 |---|---|

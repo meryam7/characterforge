@@ -2,7 +2,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../env'
 import { isAdmin } from '../db'
-import { fail, int, str } from '../http'
+import { fail, int, jsonBody, str } from '../http'
 import { logEvent } from '../security-log'
 
 const r = new Hono<AppEnv>()
@@ -16,6 +16,37 @@ r.use('*', async (c, next) => {
   }
   if (!c.get('session')?.mfa) fail(403, 'Admin area requires a session verified with MFA - log in again')
   await next()
+})
+
+/** Moderation queue: shared designs with open reports, most reported first. */
+r.get('/reports', async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT r.design_id, COUNT(*) AS reports, GROUP_CONCAT(DISTINCT r.reason) AS reasons,
+            SUBSTR(GROUP_CONCAT(NULLIF(r.note, ''), ' | '), 1, 600) AS notes, MAX(r.created_at) AS last_report_at,
+            d.image_key, d.is_public, d.prompt, ch.name AS character_name, u.display_name AS author, u.id AS author_id
+     FROM reports r JOIN designs d ON d.id = r.design_id JOIN characters ch ON ch.id = d.character_id JOIN users u ON u.id = ch.user_id
+     WHERE r.status = 'open' GROUP BY r.design_id ORDER BY reports DESC, last_report_at DESC LIMIT 100`,
+  ).all<{ image_key: string }>()
+  return c.json({ items: results.map(({ image_key, ...row }) => ({ ...row, image_url: `/api/files/${image_key}` })) })
+})
+
+/** body {action: "dismiss" | "remove"}. remove = take the design out of the community gallery. */
+r.post('/reports/:designId{[0-9]+}/resolve', async (c) => {
+  const id = Number(c.req.param('designId'))
+  const body = await jsonBody(c.req.raw)
+  const action = str(body.action, 'action', { pattern: /^(dismiss|remove)$/ })
+  const db = c.env.DB
+  const stmts = [
+    db.prepare("UPDATE reports SET status = ?, resolved_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE design_id = ? AND status = 'open'")
+      .bind(action === 'remove' ? 'removed' : 'dismissed', id),
+  ]
+  if (action === 'remove') stmts.push(db.prepare('UPDATE designs SET is_public = 0, published_at = NULL WHERE id = ?').bind(id))
+  const [res] = await db.batch(stmts)
+  if (!res.meta.changes) fail(404, 'No open reports for this design')
+  await logEvent(c, action === 'remove' ? 'admin_takedown' : 'report_dismissed', action === 'remove' ? 'alert' : 'info', {
+    detail: { design: id, via: 'reports' },
+  })
+  return c.json({ ok: true })
 })
 
 r.get('/security/summary', async (c) => {

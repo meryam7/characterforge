@@ -100,6 +100,7 @@ export function characterOut(ch: CharacterRow, stats: { design_count: number; co
     reference_url: fileUrl(ch.reference_key),
     cover_url: fileUrl(stats.cover_key ?? ch.reference_key),
     design_count: stats.design_count,
+    remixed_from: ch.remixed_from ?? null,
     created_at: ch.created_at,
   }
 }

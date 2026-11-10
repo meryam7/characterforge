@@ -23,12 +23,14 @@ admin+MFA) → route → `ownedCharacter(c, id)`/`ownedDesign(c, id)` → D1 (pr
 | GET/POST | `/api/characters/:id/designs` (multipart image, thumb, kind, source, prompt, parent_id, consistency, embedding) | routes/characters.ts |
 | POST | `/api/characters/:id/exported` `{detail, design_id?}` | routes/characters.ts |
 | GET/DELETE | `/api/history?before&limit&character_id` | routes/history.ts |
-| GET | `/api/gallery?before&limit` (public) | routes/gallery.ts |
+| GET | `/api/gallery?sort=new/popular &before or &offset &limit`, `/api/gallery/:id` (public) | routes/gallery.ts |
+| POST/DELETE | `/api/gallery/:id/like`; POST `/api/gallery/:id/remix`, `/api/gallery/:id/report` | routes/gallery.ts |
 | POST/DELETE | `/api/designs/:id/publish` (DELETE: owner or admin) | routes/gallery.ts |
 | GET | `/api/ai/status` · POST `/api/ai/generate` · POST `/api/ai/inpaint` | routes/ai.ts |
 | GET | `/api/files/:prefix/:name` (owner, or anyone for shared designs) | routes/files.ts |
 | POST | `/api/auth/{logout,password,sessions/revoke,mfa/setup,mfa/enable,mfa/disable,mfa/verify,mfa/enrol/start,mfa/enrol/finish}`; GET `/api/auth/csrf` | routes/auth.ts |
-| GET | `/api/admin/security/{summary,events}` (admin + MFA) | routes/admin.ts |
+| GET | `/api/admin/security/{summary,events}`, `/api/admin/reports`; POST `/api/admin/reports/:id/resolve` (admin + MFA) | routes/admin.ts |
+| GET | `/d/:id` (HTML share page, not under /api) | functions/d/[id].ts |
 
 ## Adding a route (checklist)
 1. Handler in the right `routes/*.ts`. It's private automatically. If it must be public, add it to `PUBLIC` in

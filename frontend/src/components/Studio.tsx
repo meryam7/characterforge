@@ -1,7 +1,7 @@
 import { Loader2, Sparkles } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Run } from '../App'
-import { api, fileUrl } from '../lib/api'
+import { api, fileUrl, shareUrl } from '../lib/api'
 import { anchorFor, renderDesign, renderEdit, saveDesign, saveReference, type Rendered } from '../lib/engine'
 import { designCanvas, godotZip, saveBlob, spriteSheetZip, transparentPng } from '../lib/engine/exporting'
 import { ctx2d, toBlob } from '../lib/engine/image'
@@ -12,6 +12,7 @@ import CanvasStage from './CanvasStage'
 import CharacterModal from './CharacterModal'
 import Gallery from './Gallery'
 import { EditPanel, ExportPanel, GeneratePanel, type ExportKind } from './Panels'
+import { useI18n } from '../lib/i18n'
 
 const Preview3D = lazy(() => import('./Preview3D')) // three.js only loads when the 3D view is opened
 
@@ -26,6 +27,7 @@ type Props = {
 }
 
 export default function Studio({ characters, charId, setCharId, refresh, run, newCharacterSignal, consumeNewCharacter }: Props) {
+  const { t } = useI18n()
   const [designs, setDesigns] = useState<Design[]>([])
   const [designId, setDesignId] = useState<number | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -69,7 +71,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
       setDesignId(null)
       return
     }
-    run('Loading designs', async () => {
+    run(t('Loading designs'), async () => {
       const list = await api.listDesigns(charId)
       setDesigns(list)
       setDesignId(list.length ? list[list.length - 1].id : null)
@@ -92,7 +94,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   const handleCreate = (data: { name: string; description: string; style: string }, file: File | null) => {
     setShowModal(false)
-    run('Creating character', async () => {
+    run(t('Creating character'), async () => {
       let ch = await api.createCharacter(data)
       if (file) ch = await saveReference(ch, file)
       await refresh()
@@ -103,7 +105,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
   const afterRender = async (r: Rendered, kind: 'generate' | 'edit', prompt: string, parentId?: number) => {
     if (!character) return
     if (r.remaining !== null) setAi((s) => (s ? { ...s, remaining: r.remaining! } : s))
-    setNotice(r.notice)
+    setNotice(r.notice ? t(r.notice) : null)
     const d = await saveDesign(character, r, { kind, prompt, parentId })
     setDesigns((prev) => [...prev, d])
     resetEditing()
@@ -113,7 +115,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   const handleGenerate = (prompt: string, lock: boolean) => {
     if (!character) return
-    run(useAi ? 'Generating with AI (5-30 s)' : 'Generating design', async () => {
+    run(useAi ? t('Generating with AI (5-30 s)') : t('Generating design'), async () => {
       const anchor = lock ? await anchorFor(character, designs) : null
       const r = await renderDesign(character, prompt, anchor, useAi)
       await afterRender(r, 'generate', prompt)
@@ -124,7 +126,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
     if (!design) return
     const next = [...points, p]
     setPoints(next)
-    run('Selecting region', async () => {
+    run(t('Selecting region'), async () => {
       const { data } = await designPixels(design)
       const mask = regionMask(data, next)
       setSelection({ mask, overlayUrl: overlayUrl(mask, data.width, data.height), coverage: coverage(mask) })
@@ -133,7 +135,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   const handleApplyEdit = (prompt: string) => {
     if (!design || !selection) return
-    run(useAi ? 'Repainting with AI (10-40 s)' : 'Applying edit', async () => {
+    run(useAi ? t('Repainting with AI (10-40 s)') : t('Applying edit'), async () => {
       const { canvas } = await designPixels(design)
       const r = await renderEdit(design, canvas, selection.mask, prompt, useAi)
       await afterRender(r, 'edit', prompt, design.id)
@@ -142,23 +144,30 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
 
   const handleTogglePublish = () => {
     if (!design) return
-    run(design.is_public ? 'Removing from community' : 'Sharing to community', async () => {
+    run(design.is_public ? t('Removing from community') : t('Sharing to community'), async () => {
       if (design.is_public) await api.unpublish(design.id)
       else await api.publish(design.id)
       setDesigns((prev) => prev.map((d) => (d.id === design.id ? { ...d, is_public: !d.is_public } : d)))
     })
   }
 
+  const handleCopyLink = () => {
+    if (!design) return
+    const url = shareUrl(design.id)
+    navigator.clipboard?.writeText(url).then(() => setNotice(t('Link copied: {url}', { url })))
+      .catch(() => setNotice(url))
+  }
+
   const handleExport = (kind: ExportKind) => {
     if (!character) return
     const base = slug(character.name)
-    run('Preparing download', async () => {
+    run(t('Preparing download'), async () => {
       if ((kind === 'png' || kind === 'transparent') && design) {
         const blob = kind === 'png' ? await toBlob(await designCanvas(design), 'image/png') : await transparentPng(design)
         saveBlob(blob, `${base}_${design.id}${kind === 'transparent' ? '_transparent' : ''}.png`)
         await api.logExport(character.id, kind === 'png' ? 'png PNG' : 'transparent PNG', design.id)
       } else if (kind === 'sheet' || kind === 'godot') {
-        if (!designs.length) throw new Error('Generate at least one design first')
+        if (!designs.length) throw new Error(t('Generate at least one design first'))
         saveBlob(kind === 'sheet' ? await spriteSheetZip(character, designs) : await godotZip(character, designs), `${base}_${kind}.zip`)
         await api.logExport(character.id, kind === 'sheet' ? 'sprite sheet' : 'Godot pack')
       }
@@ -175,13 +184,12 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
             <Sparkles />
           </div>
           <h2 className="font-display text-2xl font-bold">
-            {characters.length ? 'Pick a character' : 'Start with a character'}
+            {characters.length ? t('Pick a character') : t('Start with a character')}
           </h2>
           <p className="mt-3 text-sm text-violet-300/80">
-            Describe someone and add a reference picture if you have one. Then generate outfits, poses and edits that
-            all look like the same person, and export them for your game, comic or animation.
+            {t('Describe someone and add a reference picture if you have one. Then generate outfits, poses and edits that all look like the same person, and export them for your game, comic or animation.')}
           </p>
-          <button className="btn-primary mt-6" onClick={() => setShowModal(true)}>Create a character</button>
+          <button className="btn-primary mt-6" onClick={() => setShowModal(true)}>{t('Create a character')}</button>
         </div>
         {modal}
       </>
@@ -198,15 +206,15 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
           <h2 className="truncate font-display text-xl font-bold">{character.name}</h2>
           <p className="truncate text-sm text-violet-300/70">{character.style}{character.description && ` · ${character.description}`}</p>
         </div>
-        <span className="chip" title="Real images come from Cloudflare Workers AI; when the daily allowance is used up, procedural preview art is used">
-          {ai?.enabled ? (useAi ? `AI · ${ai.remaining} left today` : 'AI limit reached · preview art') : 'Preview art mode'}
+        <span className="chip" title={t('Real images come from Cloudflare Workers AI; when the daily allowance is used up, procedural preview art is used')}>
+          {ai?.enabled ? (useAi ? t('AI · {n} left today', { n: ai.remaining }) : t('AI limit reached · preview art')) : t('Preview art mode')}
         </span>
       </header>
 
       {notice && (
         <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100" role="status">
           <span>{notice}</span>
-          <button className="underline" onClick={() => setNotice(null)}>OK</button>
+          <button className="underline" onClick={() => setNotice(null)}>{t('OK')}</button>
         </div>
       )}
 
@@ -228,7 +236,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
           )}
           {!design && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8 text-center text-sm text-violet-300/70">
-              No designs yet. Use "Generate first design" on the right.
+              {t('No designs yet. Use "Generate first design" on the right.')}
             </div>
           )}
         </section>
@@ -253,6 +261,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
             setShow3D={(v) => { setShow3D(v); if (v) resetEditing() }}
             onExport={handleExport}
             onTogglePublish={handleTogglePublish}
+            onCopyLink={handleCopyLink}
           />
         </div>
       </div>

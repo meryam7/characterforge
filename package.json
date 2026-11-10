@@ -12,9 +12,10 @@
     "smoke": "node scripts/smoke.mjs",
     "test:security": "node scripts/security-test.mjs",
     "check:security": "node scripts/check-security.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "audit": "npm audit --audit-level=high && npm --prefix frontend audit --audit-level=high",
-    "deploy:staging": "npm --prefix frontend run build -- --mode staging && npm run check:security && wrangler d1 migrations apply characterforge-staging --remote --env preview && wrangler pages deploy --project-name characterforge --branch staging",
-    "deploy:production": "npm run build && npm run check:security && wrangler d1 migrations apply characterforge --remote --env production && wrangler pages deploy --project-name characterforge --branch main",
+    "deploy:staging": "npm --prefix frontend run build -- --mode staging && npm run check:security && npm run check:i18n && wrangler d1 migrations apply characterforge-staging --remote --env preview && wrangler pages deploy --project-name characterforge --branch staging",
+    "deploy:production": "npm run build && npm run check:security && npm run check:i18n && wrangler d1 migrations apply characterforge --remote --env production && wrangler pages deploy --project-name characterforge --branch main",
     "backup": "node scripts/backup.mjs",
     "restore:test": "node scripts/restore-test.mjs"
   },

@@ -12,6 +12,12 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
    `--dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`. `*.r2.cloudflarestorage.com` is unreachable.
 
 ## Open
+- Legal pages contain placeholders (`OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` in `frontend/src/lib/legal.ts`): fill them
+  in before launch, and have the texts reviewed by a lawyer for your country.
+- Server error messages are English; the UI translates the common ones (`i18n.fr.ts` "server messages" block). New
+  `fail()` texts shown to users need a French entry. The daily-AI-limit message (contains a number) stays English.
+- Local `wrangler pages dev` may fail with SQLITE_READONLY when the repo sits in OneDrive: use
+  `--persist-to <folder outside OneDrive>` for both `d1 migrations apply --local` and `pages dev`.
 - Security model, review and accepted risks: `docs/SECURITY.md`.
 - Testing from this PC: sign-ups are limited to 20/h per IP, so repeated test runs can hit 429. Wait or use another network.
 - `wrangler d1 export` writes images as >100 KB statements that D1 can't import. Restore only via `scripts/restore-test.mjs`

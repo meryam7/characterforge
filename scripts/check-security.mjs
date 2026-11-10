@@ -28,6 +28,7 @@ const SAFE_INTERPOLATIONS = [
   /^where\.length \? `WHERE \$\{where\.join\(' AND '\)\}` : ''$/,
   /^before !== null \? 'AND d\.id < \?' : ''$/,
   /^rule\.by$/, // column name from the constant RULES table ('subject' | 'ip_hash')
+  /^PUBLIC_SELECT$/, // constant SELECT prefix in server/routes/gallery.ts
 ]
 for (const file of walk(path.join(root, 'server'), ['.ts'])) {
   scanned++

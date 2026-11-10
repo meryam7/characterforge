@@ -22,3 +22,8 @@ TOTP secrets are encrypted with `MFA_ENCRYPTION_KEY`, and IPs and emails in logs
 2. `npm run db:migrate:local`, test, `npm run deploy:staging` (migrates staging), run the test suites.
 3. The production migration runs as part of `npm run deploy:production`, after a backup (`docs/BACKUP.md`).
 4. Update `server/env.ts` row types, the `*Out` shapes in `server/db.ts`, and `frontend/src/lib/types.ts`.
+
+## Added in 0003_growth_trust
+`likes` (user_id, design_id) PK · `designs.like_count` (denormalised, popular index) · `characters.remixed_from` (design id) ·
+`reports` (design_id, reporter_id UNIQUE, reason, note, status open|dismissed|removed, resolved_at) ·
+`users.terms_version`, `users.terms_accepted_at`. All cascade with their user/design.

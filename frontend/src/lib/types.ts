@@ -46,6 +46,7 @@ export type Character = {
   reference_url: string | null
   cover_url: string | null
   design_count: number
+  remixed_from: number | null
   created_at: string
 }
 
@@ -94,8 +95,27 @@ export type PublicDesign = {
   style: string
   author: string
   published_at: string
+  like_count: number
+  liked_by_me: boolean
 }
-export type GalleryPage = { items: PublicDesign[]; next_before: number | null }
+export type GallerySort = 'new' | 'popular'
+export type GalleryPage = { items: PublicDesign[]; next_before: number | null; next_offset: number | null }
+
+export const REPORT_REASONS = ['nsfw', 'violence', 'hate', 'copyright', 'spam', 'other'] as const
+export type ReportReason = (typeof REPORT_REASONS)[number]
+export type ReportItem = {
+  design_id: number
+  reports: number
+  reasons: string
+  notes: string | null
+  last_report_at: string
+  is_public: number
+  prompt: string
+  character_name: string
+  author: string
+  author_id: number
+  image_url: string
+}
 
 // Keys must match STYLES in server/ai.ts
 export const STYLES = ['anime', 'pixel art', 'comic book', 'painterly', 'chibi', 'realistic concept art']

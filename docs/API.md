@@ -48,3 +48,15 @@ SecuritySummary { last_24h[], recent_alerts[], users{n,mfa}, active_sessions }  
 | GET `/ai/status` · POST `/ai/generate` · POST `/ai/inpaint` | session (+owner) | 6/min. Base64 and mask strictly validated. `fallback:true` on failure |
 | GET `/files/:prefix/:name` | owner, or anyone if the design is shared | `CSP: sandbox`, private cache for owners |
 | GET `/admin/security/summary` · `/admin/security/events?before&severity&limit` | admin + MFA session | |
+
+## Growth & trust (added 2026-11-10)
+| Route | Access | Notes |
+|---|---|---|
+| GET `/gallery?sort=new/popular &before or &offset &limit` | public | items include `like_count`, `liked_by_me`; `next_before` (new) / `next_offset` (popular) |
+| GET `/gallery/:id` | public | one shared design (404 if private) |
+| POST / DELETE `/gallery/:id/like` | session | idempotent; returns `{liked, like_count}` · 120/h |
+| POST `/gallery/:id/remix` | session | "start from this": new character of yours, shared image copied as its reference (`remixed_from`) · 20/h |
+| POST `/gallery/:id/report` `{reason: nsfw, violence, hate, copyright, spam, other, note?}` | session | one per user+design, not your own; 3 open reports → `content_reported` alert · 20/day |
+| GET `/admin/reports` · POST `/admin/reports/:designId/resolve` `{action: "dismiss" or "remove"}` | admin + MFA | moderation queue; remove = unpublish + `admin_takedown` alert |
+| GET `/d/:id` (not under /api) | public | SPA HTML with og/twitter tags of the shared design |
+`POST /auth/register` now requires `accept_terms: true` (stored as `terms_version` + `terms_accepted_at`).

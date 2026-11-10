@@ -37,6 +37,7 @@ export type CharacterRow = {
   seed: number
   reference_key: string | null
   embedding: string | null
+  remixed_from?: number | null
   created_at: string
 }
 

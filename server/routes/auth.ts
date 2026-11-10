@@ -18,6 +18,8 @@ import { createSession, destroySession, issueCsrf, revokeSessions } from '../ses
 import { newTotpSecret, otpauthUri, verifyTotp } from '../totp'
 
 const CHALLENGE_TTL = 300
+/** Version of the Terms of Use + Privacy Policy users accept at sign-up (frontend/src/lib/legal.ts LEGAL_VERSION). */
+export const TERMS_VERSION = '2026-11-10'
 const nowSec = () => Math.floor(Date.now() / 1000)
 
 export const userOut = (c: Context<AppEnv>, u: UserRow) => ({
@@ -129,12 +131,15 @@ auth.post('/register', async (c) => {
   const name = str(body.display_name, 'display name', { min: 2, max: 40 })
   const problem = passwordProblem(body.password, email)
   if (problem) fail(422, problem)
+  if (body.accept_terms !== true) fail(422, 'accept_terms: you must accept the Terms of Use and Privacy Policy')
   await rateLimit(c, `register:${c.get('ipHash')}`, 20, 3600)
   if (await c.env.DB.prepare('SELECT 1 FROM users WHERE email = ?').bind(email).first()) {
     fail(409, 'An account with this email already exists')
   }
-  const user = await c.env.DB.prepare('INSERT INTO users (email, display_name, password_hash) VALUES (?, ?, ?) RETURNING *')
-    .bind(email, name, await hashPassword(body.password as string))
+  const user = await c.env.DB.prepare(
+    "INSERT INTO users (email, display_name, password_hash, terms_version, terms_accepted_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now')) RETURNING *",
+  )
+    .bind(email, name, await hashPassword(body.password as string), TERMS_VERSION)
     .first<UserRow>()
   await logEvent(c, 'account_created', 'info', { userId: user!.id })
   if (isAdmin(c.env, email)) {

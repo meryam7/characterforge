@@ -73,6 +73,16 @@ for (const p of ['/api/%61dmin/security/summary', '/api/admin%2Fsecurity/events'
   ok(!(r.data && typeof r.data === 'object' && ('last_24h' in r.data || 'items' in r.data)), `encoded/odd admin path ${p} returns no admin data (${r.status})`)
 }
 ok(!JSON.stringify((await anon.call('GET', '/api/gallery')).data).includes('@'), 'gallery never exposes emails')
+ok((await anon.call('POST', '/api/auth/register', { json: { email: `noterms-${RUN}@example.com`, password: PASSWORD, display_name: 'No terms' } })).status === 422, 'sign-up refused without accepting the Terms')
+for (const [m, p] of [['GET', `/api/gallery/${d.id}`], ['POST', `/api/gallery/${d.id}/like`], ['POST', `/api/gallery/${d.id}/remix`], ['POST', `/api/gallery/${d.id}/report`]]) {
+  const r = await b.call(m, p, { json: m === 'POST' ? { reason: 'spam' } : undefined })
+  ok(r.status === 404, `private design: ${m} ${p} -> 404 (${r.status})`)
+}
+const share = await fetch(`${BASE}/d/${d.id}`)
+ok(!(await share.text()).includes(d.image_url), 'share page of a private design leaks nothing')
+ok((await anon.call('POST', `/api/gallery/${d.id}/like`)).status === 401, 'like needs login')
+ok((await b.call('GET', '/api/admin/reports')).status === 404, 'non-admin cannot see the moderation queue')
+ok((await a.call('POST', `/api/gallery/${d.id}/report`, { json: { reason: '<script>' } })).status === 422, 'report reason validated')
 
 // ---------------------------------------------------------------- SQL injection
 const sqli = ["' OR '1'='1", "admin'--", "x'); DROP TABLE users;--", '1 OR 1=1']
@@ -105,7 +115,7 @@ fake.append('image', new Blob(['<html><script>alert(1)</script>'], { type: 'text
 fake.append('thumb', new Blob(['x'], { type: 'text/html' }), 'x.html')
 fake.append('kind', 'generate'); fake.append('source', 'mock')
 ok((await a.call('POST', `/api/characters/${ch.id}/designs`, { form: fake })).status === 415, 'HTML upload disguised as image -> 415')
-ok((await anon.call('POST', '/api/auth/register', { json: { email: `weak-${RUN}@example.com`, password: 'password123', display_name: 'Weak' } })).status === 422, 'weak password rejected')
+ok((await anon.call('POST', '/api/auth/register', { json: { email: `weak-${RUN}@example.com`, password: 'password123', display_name: 'Weak', accept_terms: true } })).status === 422, 'weak password rejected')
 
 // ---------------------------------------------------------------- MFA (any user)
 const m = await register('sec-mfa')
@@ -170,7 +180,7 @@ ok(limited, 'login brute force -> 429')
 if (ADMIN) {
   const adm = new Client()
   let res = await adm.call('POST', '/api/auth/login', { json: { email: ADMIN, password: PASSWORD } })
-  if (res.status === 401) res = await adm.call('POST', '/api/auth/register', { json: { email: ADMIN, password: PASSWORD, display_name: 'Admin' } })
+  if (res.status === 401) res = await adm.call('POST', '/api/auth/register', { json: { email: ADMIN, password: PASSWORD, display_name: 'Admin', accept_terms: true } })
   ok(res.data.status === 'mfa_enrol_required' && !adm.jar.has('__Host-session'), 'admin gets no session before MFA enrolment')
   const es = (await adm.call('POST', '/api/auth/mfa/enrol/start', { json: { challenge: res.data.challenge } })).data
   await freshStep()
@@ -188,6 +198,15 @@ if (ADMIN) {
   const secrets = [PASSWORD, NEW_PW, setup.secret, es.secret, rc, stolen, target, a.email]
   ok(secrets.every((s) => !blob.includes(s)), 'security log contains no passwords, MFA secrets, codes, session tokens or emails')
   ok((await b.call('GET', '/api/admin/security/summary')).status === 404, 'non-admin cannot see the security console')
+  // moderation: b shares a design, a reports it, the admin removes it from the gallery
+  const bc = (await b.call('POST', '/api/characters', { json: { name: 'Reported hero' } })).data
+  const bd = (await b.call('POST', `/api/characters/${bc.id}/designs`, { form: designForm() })).data
+  await b.call('POST', `/api/designs/${bd.id}/publish`)
+  ok((await a.call('POST', `/api/gallery/${bd.id}/report`, { json: { reason: 'copyright', note: 'not theirs' } })).status === 200, 'report a shared design')
+  const queue = (await adm.call('GET', '/api/admin/reports')).data.items
+  ok(queue.some((q) => q.design_id === bd.id && q.reasons.includes('copyright')), 'report appears in the moderation queue')
+  ok((await adm.call('POST', `/api/admin/reports/${bd.id}/resolve`, { json: { action: 'remove' } })).status === 200, 'moderator removes it')
+  ok((await anon.call('GET', `/api/gallery/${bd.id}`)).status === 404, 'removed design is no longer public')
   const del = await adm.call('DELETE', '/api/auth/me', { json: { password: PASSWORD, code: fin.data.recovery_codes[0] } })
   ok(del.status === 200, 'admin test account removed (password + MFA recovery code)')
 } else {

@@ -1,7 +1,8 @@
 /** API client. Authentication uses an HttpOnly session cookie that JavaScript can't read (safe from XSS token theft).
  * Every state-changing request sends the CSRF token (double-submit cookie __Host-csrf → X-CSRF-Token header). */
 import type {
-  AiStatus, Character, Design, GalleryPage, HistoryPage, LoginResult, MfaSetup, SecurityEventsPage, SecuritySummary, User,
+  AiStatus, Character, Design, GalleryPage, GallerySort, HistoryPage, LoginResult, MfaSetup, PublicDesign, ReportItem, ReportReason,
+  SecurityEventsPage, SecuritySummary, User,
 } from './types'
 
 /** Fired when the server says the session is gone, so the app returns to the login screen. */
@@ -77,8 +78,8 @@ async function image(path: string, body: unknown) {
 
 export const api = {
   // auth + account
-  register: (email: string, password: string, display_name: string) =>
-    json<LoginResult>('/api/auth/register', post({ email, password, display_name })),
+  register: (email: string, password: string, display_name: string, accept_terms: boolean) =>
+    json<LoginResult>('/api/auth/register', post({ email, password, display_name, accept_terms })),
   login: (email: string, password: string) => json<LoginResult>('/api/auth/login', post({ email, password })),
   mfaVerify: (challenge: string, code: string) => json<LoginResult>('/api/auth/mfa/verify', post({ challenge, code })),
   mfaEnrolStart: (challenge: string) => json<MfaSetup>('/api/auth/mfa/enrol/start', post({ challenge })),
@@ -114,12 +115,24 @@ export const api = {
   // history + community
   history: (before?: number | null) => json<HistoryPage>(`/api/history?limit=30${before ? `&before=${before}` : ''}`),
   clearHistory: () => json<{ ok: boolean }>('/api/history', { method: 'DELETE' }),
-  gallery: (before?: number | null) => json<GalleryPage>(`/api/gallery${before ? `?before=${before}` : ''}`),
+  gallery: (sort: GallerySort = 'new', cursor?: number | null) =>
+    json<GalleryPage>(`/api/gallery?sort=${sort}${cursor ? `&${sort === 'popular' ? 'offset' : 'before'}=${cursor}` : ''}`),
+  publicDesign: (id: number) => json<PublicDesign>(`/api/gallery/${id}`),
+  like: (id: number) => json<{ liked: boolean; like_count: number }>(`/api/gallery/${id}/like`, post()),
+  unlike: (id: number) => json<{ liked: boolean; like_count: number }>(`/api/gallery/${id}/like`, { method: 'DELETE' }),
+  remix: (id: number) => json<Character>(`/api/gallery/${id}/remix`, post()),
+  report: (id: number, reason: ReportReason, note: string) => json<{ ok: boolean }>(`/api/gallery/${id}/report`, post({ reason, note })),
   publish: (designId: number) => json<Design>(`/api/designs/${designId}/publish`, post()),
   unpublish: (designId: number) => json<{ ok: boolean }>(`/api/designs/${designId}/publish`, { method: 'DELETE' }),
 
   // admin (MFA-verified admins only)
+  reports: () => json<{ items: ReportItem[] }>('/api/admin/reports'),
+  resolveReport: (designId: number, action: 'dismiss' | 'remove') =>
+    json<{ ok: boolean }>(`/api/admin/reports/${designId}/resolve`, post({ action })),
   securitySummary: () => json<SecuritySummary>('/api/admin/security/summary'),
   securityEvents: (before?: number | null, severity?: string) =>
     json<SecurityEventsPage>(`/api/admin/security/events?limit=50${before ? `&before=${before}` : ''}${severity ? `&severity=${severity}` : ''}`),
 }
+
+/** Public share link of a shared design (served with social-preview tags by functions/d/[id].ts). */
+export const shareUrl = (designId: number) => `${window.location.origin}/d/${designId}`

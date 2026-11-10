@@ -1,8 +1,9 @@
 # CharaForge — Claude guide
 
 AI character design studio: description + optional reference image → consistent character designs → click a region →
-AI repaint → export (PNG, transparent PNG, sprite sheet, Godot 4 pack). It also has accounts, a per-user **history**
-and an opt-in public **community gallery**.
+AI repaint → export (PNG, transparent PNG, sprite sheet, Godot 4 pack). It also has accounts (MFA), a per-user **history**,
+an opt-in public **community gallery** (likes, "start from this" remix, reports + moderation, `/d/<id>` share pages with
+social previews), **English + French UI**, and Privacy/Terms/Content-Policy pages.
 **Live:** https://characterforge-3u3.pages.dev — 100% Cloudflare free tier (Pages + Pages Functions + D1 + Workers AI).
 Staging (testing env): https://staging.characterforge-3u3.pages.dev. Repo: https://github.com/meryam7/characterforge. Small codebase: **read only what the task needs** and use the maps below.
 
@@ -36,6 +37,9 @@ drawing, region selection, compositing, background removal, zips. `server/` (Hon
 | API client (cookies + `X-CSRF-Token`, `ApiError`) | `frontend/src/lib/api.ts` · types `lib/types.ts` |
 | Browser image engine | `frontend/src/lib/engine/{index,image,mock,select,identity,exporting}.ts` |
 | UI components | `frontend/src/components/*` (see `frontend/CLAUDE.md`) |
+| i18n: provider + switcher · French dictionary | `frontend/src/lib/i18n.tsx` · `frontend/src/lib/i18n.fr.ts` |
+| Legal texts EN/FR (+ operator placeholders) | `frontend/src/lib/legal.ts` |
+| Share page with social tags (`/d/<id>`) | `functions/d/[id].ts` |
 | Tests: functional · security (78 checks) · static checks | `scripts/smoke.mjs` · `scripts/security-test.mjs` · `scripts/check-security.mjs` |
 | Encrypted backup · restore test | `scripts/backup.mjs` · `scripts/restore-test.mjs` |
 
@@ -51,6 +55,7 @@ npm run dev:web                                     # + Vite hot reload on :5173
 npm run typecheck                                   # server + frontend tsc
 npm run smoke; npm run test:security               # vs :8788 (BASE=https://staging... for staging; AI=1 includes AI)
 npm run check:security; npm run audit               # parameterized-SQL / bundle-secret / XSS-sink scan; npm audit
+npm run check:i18n                                  # every t('...') string has a French translation
 npm run deploy:staging                              # ALWAYS first; test staging; then npm run deploy:production
 npm run backup -- characterforge; npm run restore:test -- backups/<file>.cfbk   # needs BACKUP_PASSPHRASE
 ```
@@ -76,6 +81,11 @@ falls back to placeholder art. Test AI against staging.
 - D1 limits: row ≤ 2 MB (images ≤ 1.5 MB enforced, and the browser uploads WebP), ≤ 100 bound params per statement.
 - Workers AI: never put "nsfw" in prompts (the model returns a black image). `toResponse` rejects blank output → `fallback`.
 - Frontend: all calls go through `api`. Async UI work goes through `run(label, fn)`. Heavy libs (konva, three) stay lazy.
+- **i18n**: every user-visible string goes through `t('English text', {vars})` from `useI18n()`. Add the French to
+  `lib/i18n.fr.ts` (`npm run check:i18n` fails otherwise). Server error `detail`s shown to users should get a French
+  entry too. AI prompts stay English (the models understand English best).
+- Legal: `lib/legal.ts` must describe what the code really does. Bump `LEGAL_VERSION` + `TERMS_VERSION` (auth.ts)
+  together on material changes. `OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` are still placeholders for the owner.
 - Secrets: `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`, optional `ALERT_WEBHOOK_URL`, stored as Pages secrets per environment
   (`.dev.vars` locally), server-only. Vars live in `wrangler.toml`. Deploy staging → test → production, never the reverse.
 

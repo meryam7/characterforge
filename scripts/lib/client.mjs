@@ -91,7 +91,7 @@ export const PASSWORD = 'Sm0ke-test-passphrase'
 export async function register(tag, { email } = {}) {
   const c = new Client()
   c.email = email ?? `smoke-${RUN}-${tag}@example.com`
-  c.res = await c.call('POST', '/api/auth/register', { json: { email: c.email, password: PASSWORD, display_name: `Smoke ${tag}` } })
+  c.res = await c.call('POST', '/api/auth/register', { json: { email: c.email, password: PASSWORD, display_name: `Smoke ${tag}`, accept_terms: true } })
   return c
 }
 

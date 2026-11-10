@@ -20,6 +20,7 @@ const PUBLIC: [string, RegExp][] = [
   ['POST', /^\/api\/auth\/(register|login)$/],
   ['POST', /^\/api\/auth\/mfa\/(verify|enrol\/start|enrol\/finish)$/], // need a short-lived login challenge instead
   ['GET', /^\/api\/gallery$/],
+  ['GET', /^\/api\/gallery\/\d+$/], // single shared design (share pages)
   ['GET', /^\/api\/files\/[drt]\/[a-f0-9]{32}\.(webp|png|jpg)$/], // owner or public design only (checked in route)
 ]
 

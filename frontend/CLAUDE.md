@@ -24,10 +24,16 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 | `components/AuthForm.tsx` + `Mfa.tsx` | Login/sign-up state machine: credentials → MFA code or MFA enrolment (QR via `qrcode-generator`) → recovery codes. |
 | `components/SettingsView.tsx` | MFA on/off, change password, sign out other devices, delete account (password + MFA). |
 | `components/SecurityView.tsx` | Admin security console (lazy; server enforces admin + MFA). |
-| `components/{Landing,Sidebar,HistoryView,CommunityGallery,Gallery,CharacterModal,ConfirmButton}.tsx` | Screens and widgets. |
+| `components/CommunityGallery.tsx` | Gallery (New/Popular) + `DesignCard` (like, start from this, copy link, report dialog). Shared by the share page. |
+| `components/ShareView.tsx` | `/d/<id>` page (App reads `location.pathname`). Works logged out. |
+| `components/LegalView.tsx` | Privacy / Terms / Content Policy (`#/privacy` `#/terms` `#/content-policy`), `LegalLinks`, `CookieNotice`. |
+| `lib/i18n.tsx` · `lib/i18n.fr.ts` · `lib/legal.ts` | `useI18n()` → `t()`, `LanguageSwitch`; French strings; legal texts EN/FR. |
+| `components/{Landing,Sidebar,HistoryView,Gallery,CharacterModal,ConfirmButton}.tsx` | Screens and widgets. |
 
 ## Conventions
 - Pixel work only in `lib/engine`. Components call engine functions inside `run()`.
+- Text: always `t('English', {vars})` (`const { t } = useI18n()`), then add French in `lib/i18n.fr.ts`; `npm run check:i18n`.
+  Dates via `timeAgo()` follow the UI language. Language choice is stored in localStorage (`charaforge_lang`).
 - Designs are normalised to 512×768 on white and uploaded as WebP (plus a 160×240 thumbnail).
 - Styling uses Tailwind + component classes in `src/index.css` (`panel`, `btn-primary`, `btn-ghost`, `input`, `label`, `chip`,
   `checker`). Icons come from `lucide-react`. React stays 18. Use `ConfirmButton`, never `window.confirm`.

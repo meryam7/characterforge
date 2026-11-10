@@ -1,6 +1,7 @@
 import {
   Download, Globe2, History, ImagePlus, Pencil, Sparkles, Trash2, UserPlus, EyeOff, type LucideIcon,
 } from 'lucide-react'
+import { useI18n } from '../lib/i18n'
 import { useCallback, useEffect, useState } from 'react'
 import type { Run } from '../App'
 import { api, fileUrl } from '../lib/api'
@@ -22,13 +23,14 @@ const META: Record<ActivityAction, { label: string; icon: LucideIcon; tone: stri
 type Props = { run: Run; onOpenCharacter: (id: number) => void }
 
 export default function HistoryView({ run, onOpenCharacter }: Props) {
+  const { t } = useI18n()
   const [items, setItems] = useState<Activity[]>([])
   const [next, setNext] = useState<number | null>(null)
   const [loaded, setLoaded] = useState(false)
 
   const load = useCallback(
     (before: number | null) =>
-      run('Loading history', async () => {
+      run(t('Loading history'), async () => {
         const page = await api.history(before)
         setItems((prev) => (before ? [...prev, ...page.items] : page.items))
         setNext(page.next_before)
@@ -42,7 +44,7 @@ export default function HistoryView({ run, onOpenCharacter }: Props) {
   }, [load])
 
   const clear = () =>
-    run('Clearing history', async () => {
+    run(t('Clearing history'), async () => {
       await api.clearHistory()
       setItems([])
       setNext(null)
@@ -52,18 +54,18 @@ export default function HistoryView({ run, onOpenCharacter }: Props) {
     <section className="mx-auto w-full max-w-3xl space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 font-display text-xl font-bold"><History size={18} /> Your history</h2>
-          <p className="text-sm text-violet-300/70">Everything you created, edited, exported and shared, including deleted characters.</p>
+          <h2 className="flex items-center gap-2 font-display text-xl font-bold"><History size={18} /> {t('Your history')}</h2>
+          <p className="text-sm text-violet-300/70">{t('Everything you created, edited, exported and shared, including deleted characters.')}</p>
         </div>
         {items.length > 0 && (
-          <ConfirmButton question="Clear all history?" onConfirm={clear} className="btn-ghost text-xs">
+          <ConfirmButton question={t('Clear all history?')} onConfirm={clear} className="btn-ghost text-xs">
             <Trash2 size={14} /> Clear history
           </ConfirmButton>
         )}
       </header>
 
       {loaded && items.length === 0 && (
-        <p className="panel p-6 text-center text-sm text-violet-300/70">No activity yet. Create a character in the studio to get started.</p>
+        <p className="panel p-6 text-center text-sm text-violet-300/70">{t('No activity yet. Create a character in the studio to get started.')}</p>
       )}
 
       <ol className="space-y-2">
@@ -77,7 +79,7 @@ export default function HistoryView({ run, onOpenCharacter }: Props) {
               </div>
               <div className="min-w-0 flex-1">
                 <div className={`flex items-center gap-1.5 text-xs font-medium ${m.tone}`}>
-                  <Icon size={13} /> {m.label}
+                  <Icon size={13} /> {t(m.label)}
                 </div>
                 <div className="truncate text-sm font-medium">{a.character_name}</div>
                 {a.detail && <div className="truncate text-xs text-violet-300/60">{a.detail}</div>}
@@ -87,9 +89,9 @@ export default function HistoryView({ run, onOpenCharacter }: Props) {
                   {timeAgo(a.created_at)}
                 </time>
                 {a.character_exists && a.character_id !== null ? (
-                  <button className="chip" onClick={() => onOpenCharacter(a.character_id!)}>Open</button>
+                  <button className="chip" onClick={() => onOpenCharacter(a.character_id!)}>{t('Open')}</button>
                 ) : a.action !== 'deleted' ? (
-                  <span className="text-[10px] text-violet-300/40">deleted</span>
+                  <span className="text-[10px] text-violet-300/40">{t('deleted')}</span>
                 ) : null}
               </div>
             </li>
@@ -98,7 +100,7 @@ export default function HistoryView({ run, onOpenCharacter }: Props) {
       </ol>
 
       {next && (
-        <div className="text-center"><button className="btn-ghost" onClick={() => load(next)}>Load older</button></div>
+        <div className="text-center"><button className="btn-ghost" onClick={() => load(next)}>{t('Load older')}</button></div>
       )}
     </section>
   )

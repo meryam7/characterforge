@@ -24,6 +24,15 @@ Run the checks: `npm run check:security` (static), `npm run test:security` (78 l
 | **Backups** | daily encrypted (AES-256-GCM, scrypt key) D1 exports + D1 Time Travel. Restore tested in a scratch database. See `BACKUP.md` | `restore-test.mjs` (counts, image bytes, fingerprint, integrity) |
 | **Testing environment** | staging = separate Pages environment, D1 database and secrets. Every change goes staging → tests → production (`DEPLOY.md`) | CI `staging` job |
 
+## Community features (2026-11-10)
+- Public routes added: `GET /api/gallery/:id` and the `/d/:id` page: both return only designs whose owner shared them
+  (private → 404 / default page; tested). Likes, remix and reports require a session and only work on shared designs.
+- "Start from this" copies the image bytes inside D1 to a new file owned by the remixer: no cross-user file access.
+- Reports: one per user and design, can't report yourself, rate-limited, reporter identity never shown. Admins see a
+  moderation queue (admin + MFA) and may view reported images; removal is logged as an alert.
+- Sign-up records acceptance of the Terms/Privacy version. Legal texts: `frontend/src/lib/legal.ts`.
+- Tests: `security-test.mjs` (91 checks incl. private-design probes on the new routes, moderation flow).
+
 ## Security review: 2026-11-06 (commit 6f5e0f4)
 Reviewed: sessions, CSRF, MFA flows, authorization, files, admin, SQL, logging, crypto.
 
