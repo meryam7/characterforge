@@ -31,7 +31,7 @@ jobs:
       - if: steps.gate.outputs.ok == 'true'
         run: npm run backup -- characterforge
       - if: steps.gate.outputs.ok == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backup-${{ github.run_id }}
           path: backups/
