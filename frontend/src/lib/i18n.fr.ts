@@ -353,6 +353,8 @@ export const fr: Record<string, string> = {
   'MFA is already enabled': 'La double authentification est déjà activée',
   'The AI model is busy right now. Preview art was used instead.': "Le modèle d'IA est occupé. Un aperçu simplifié a été utilisé à la place.",
   'AI generation is switched off': "La génération par IA est désactivée",
+  'The local API server is not running. Start everything with: npm run dev':
+    "Le serveur API local n'est pas démarré. Lancez tout avec : npm run dev",
   'Could not read the image': "Impossible de lire l'image",
   'Image too large (max 20 MB)': 'Image trop lourde (20 Mo maximum)',
 }

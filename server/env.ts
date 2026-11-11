@@ -2,7 +2,7 @@
  * Secrets live ONLY here, on the server. They are never sent to the browser or written to logs. */
 export type Env = {
   DB: D1Database
-  AI: Ai
+  AI?: Ai // absent in local dev (no Cloudflare login needed there)
   // --- secrets (wrangler pages secret put NAME --project-name characterforge [--env preview]) ---
   MFA_ENCRYPTION_KEY: string // base64, 32 bytes: encrypts TOTP secrets at rest (AES-256-GCM)
   LOG_HASH_SALT: string // pseudonymises IPs/emails in logs

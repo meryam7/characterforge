@@ -14,7 +14,7 @@ r.use('*', requireUser)
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/ // checked on the whole string
 const MAX_B64 = 2_000_000
 
-const enabled = (env: Env) => env.AI_ENABLED !== 'false'
+const enabled = (env: Env) => env.AI_ENABLED !== 'false' && !!env.AI
 const dailyLimit = (env: Env) => Number(env.AI_DAILY_LIMIT || '40')
 
 async function used(db: D1Database, uid: number) {

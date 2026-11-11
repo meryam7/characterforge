@@ -9,7 +9,19 @@ export default defineConfig(({ mode }) => {
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { '/api': 'http://localhost:8788' },
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8788',
+        // API not running -> clear JSON message instead of a bare "Internal Server Error"
+        configure: (proxy) =>
+          proxy.on('error', (_err, _req, res) => {
+            if ('writeHead' in res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ detail: 'The local API server is not running. Start everything with: npm run dev' }))
+            }
+          }),
+      },
+    },
   },
   build: {
     rollupOptions: {

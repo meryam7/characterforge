@@ -50,9 +50,8 @@ Deeper docs (open on demand): `docs/ARCHITECTURE.md`, `API.md`, `DATA_MODEL.md`,
 ## Commands (repo root)
 ```powershell
 npm install; npm --prefix frontend install         # once
-npm run db:migrate:local                            # once / after new migrations
-npm run build; npm run dev                          # full stack on http://127.0.0.1:8788 (local D1)
-npm run dev:web                                     # + Vite hot reload on :5173 (proxies /api to :8788)
+npm run dev                                         # API :8788 + Vite :5173 in one command (scripts/dev.mjs: .dev.vars, migrations, no CF login)
+npm run dev:api; npm run db:migrate:local           # API only · migrations only (local DB in ~/.charaforge/dev-state)
 npm run typecheck                                   # server + frontend tsc
 npm run smoke; npm run test:security               # vs :8788 (BASE=https://staging... for staging; AI=1 includes AI)
 npm run check:security; npm run audit               # parameterized-SQL / bundle-secret / XSS-sink scan; npm audit
@@ -61,8 +60,8 @@ npm run deploy:staging                              # ALWAYS first; test staging
 npm run backup -- characterforge; npm run restore:test -- backups/<file>.cfbk   # needs BACKUP_PASSPHRASE
 ```
 Wrangler auth: `npx wrangler login`, or set `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`. Never commit tokens.
-Workers AI can't run in local `wrangler pages dev` (its remote proxy returns "internal error"). Locally the app
-falls back to placeholder art. Test AI against staging.
+Local dev has no AI binding (it would force `wrangler login`) and `AI_ENABLED=false`, so the app uses placeholder
+art. Test AI against staging.
 
 ## Rules
 - **Contract sync**: output shapes in `server/db.ts` (`characterOut`, `designOut`, `activityOut`) and the routes must match

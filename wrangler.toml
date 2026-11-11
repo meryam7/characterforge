@@ -54,15 +54,15 @@ database_name = "characterforge"
 database_id = "4ee33c02-48a7-4f1b-afb0-ba4cfc578b7e"
 migrations_dir = "migrations"
 
-[ai]
-binding = "AI"
+# No AI binding locally: it would require `wrangler login` (Workers AI always runs remotely). Local dev draws preview
+# art instead; test real AI on staging. Staging/production declare their own [env.*.ai] binding above.
 
 [vars]
 ENVIRONMENT = "development"
 SIGNUP_LIMIT_PER_HOUR = "200"
 EMAIL_PROVIDER = "log"
 EMAIL_FROM = "CharaForge <no-reply@localhost>"
-AI_ENABLED = "true"
+AI_ENABLED = "false"
 AI_DAILY_LIMIT = "40"
 ADMIN_EMAILS = "admin-local@example.com"
 

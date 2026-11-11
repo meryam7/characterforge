@@ -37,3 +37,8 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
 ## Keep in sync
 `STYLES` (`server/ai.ts` ↔ `frontend/src/lib/types.ts`) · output shapes (`server/db.ts` ↔ `types.ts`) · history actions
 (`db.ts ACTIONS` ↔ `types.ts ActivityAction` ↔ `HistoryView META`) · `slug` (`lib/format.ts`, used by exports).
+
+## Local "Internal Server Error" on sign-up / login
+It means Vite (:5173) is running but the API (:8788) is not. Use `npm run dev` (starts both). The old top-level `[ai]`
+binding made `wrangler pages dev` require a Cloudflare login and fail; it was removed (AI is staging/production only).
+The Vite proxy now answers a clear 503 JSON message when the API is down.
