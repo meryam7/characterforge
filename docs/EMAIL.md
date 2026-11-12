@@ -39,6 +39,12 @@ To test real delivery on staging, set the provider + key with `--env preview` to
 email" screen (never in staging/production). To send real emails locally, put `EMAIL_PROVIDER=brevo`, `EMAIL_FROM=...`
 and `EMAIL_API_KEY=...` in `.dev.vars` (it overrides `wrangler.toml` vars).
 
+### One command: `npm run email:setup` (scripts/email-setup.mjs)
+Configured provider: **Brevo**, sender `hello@creativecomet.tn` (wrangler.toml). After creating the Brevo account and an API
+key, run `npm run email:setup`: it checks the key and sender, sends a test email, stores `EMAIL_API_KEY` for staging +
+production (Pages secrets) and `.dev.vars`, and redeploys staging. Then `npm run deploy:production`.
+Until the secret exists, staging/local fall back to `log` (production answers 503).
+
 ### Quickest real setup: Brevo (free, no domain needed)
 1. Sign up at brevo.com with the address you want to send from (it becomes a verified sender).
 2. SMTP & API → API keys → *Generate a new API key*.

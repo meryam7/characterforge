@@ -56,6 +56,7 @@ npm run typecheck                                   # server + frontend tsc
 npm run smoke; npm run test:security               # vs :8788 (BASE=https://staging... for staging; AI=1 includes AI)
 npm run check:security; npm run audit               # parameterized-SQL / bundle-secret / XSS-sink scan; npm audit
 npm run check:i18n                                  # every t('...') string has a French translation
+npm run email:setup                                 # Brevo key → secrets (staging+prod+.dev.vars), test mail, staging deploy
 npm run deploy:staging                              # ALWAYS first; test staging; then npm run deploy:production
 npm run backup -- characterforge; npm run restore:test -- backups/<file>.cfbk   # needs BACKUP_PASSPHRASE
 ```

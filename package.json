@@ -15,6 +15,7 @@
     "check:security": "node scripts/check-security.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "audit": "npm audit --audit-level=high && npm --prefix frontend audit --audit-level=high",
+    "email:setup": "node --dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000 scripts/email-setup.mjs",
     "deploy:staging": "npm --prefix frontend run build -- --mode staging && npm run check:security && npm run check:i18n && wrangler d1 migrations apply characterforge-staging --remote --env preview && wrangler pages deploy --project-name characterforge --branch staging",
     "deploy:production": "npm run build && npm run check:security && npm run check:i18n && wrangler d1 migrations apply characterforge --remote --env production && wrangler pages deploy --project-name characterforge --branch main",
     "backup": "node scripts/backup.mjs",

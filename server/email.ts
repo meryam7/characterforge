@@ -60,7 +60,8 @@ function render(purpose: CodePurpose, code: string, lang: 'en' | 'fr') {
 }
 
 async function deliver(env: Env, to: string, msg: { subject: string; text: string; html: string }): Promise<void> {
-  const provider = (env.EMAIL_PROVIDER || 'log').toLowerCase()
+  let provider = (env.EMAIL_PROVIDER || 'log').toLowerCase()
+  if (!env.EMAIL_API_KEY && !isProd(env)) provider = 'log' // staging/dev not configured yet: print instead of failing
   const from = env.EMAIL_FROM || 'CharaForge <no-reply@example.com>'
   if (provider === 'log') {
     if (isProd(env)) throw new Error('EMAIL_PROVIDER=log is not allowed in production')
@@ -98,7 +99,7 @@ export async function sendCode(
   opts: { reuseRecent?: boolean } = {},
 ): Promise<string | undefined> {
   const db = c.env.DB
-  const devShow = c.env.ENVIRONMENT === 'development' && (c.env.EMAIL_PROVIDER || 'log').toLowerCase() === 'log'
+  const devShow = c.env.ENVIRONMENT === 'development' && ((c.env.EMAIL_PROVIDER || 'log').toLowerCase() === 'log' || !c.env.EMAIL_API_KEY)
   const last = await db.prepare('SELECT created_at FROM email_codes WHERE user_id = ? AND purpose = ? ORDER BY id DESC LIMIT 1')
     .bind(user.id, purpose)
     .first<{ created_at: number }>()

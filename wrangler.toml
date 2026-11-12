@@ -21,8 +21,8 @@ binding = "AI"
 [env.production.vars]
 ENVIRONMENT = "production"
 # Email codes (sign-up verification, password reset). Needs the secret EMAIL_API_KEY. See docs/EMAIL.md.
-EMAIL_PROVIDER = "resend"            # resend | brevo
-EMAIL_FROM = "CharaForge <no-reply@YOUR-DOMAIN>"   # must be a sender/domain verified with the provider
+EMAIL_PROVIDER = "brevo"             # resend | brevo  (npm run email:setup stores the key and the sender)
+EMAIL_FROM = "CharaForge <hello@creativecomet.tn>"   # must be a sender/domain verified with the provider
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "40"
 ADMIN_EMAILS = ""
@@ -40,8 +40,8 @@ binding = "AI"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"
-EMAIL_PROVIDER = "log"               # codes are printed to the Functions log; @example.com go to the test inbox
-EMAIL_FROM = "CharaForge <no-reply@YOUR-DOMAIN>"
+EMAIL_PROVIDER = "brevo"             # without the EMAIL_API_KEY secret, staging falls back to "log"; @example.com → test inbox
+EMAIL_FROM = "CharaForge <hello@creativecomet.tn>"
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "10"
 SIGNUP_LIMIT_PER_HOUR = "200"        # test environment: the automated suites create many accounts
