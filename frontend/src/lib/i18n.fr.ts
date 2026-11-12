@@ -355,6 +355,8 @@ export const fr: Record<string, string> = {
   'AI generation is switched off': "La génération par IA est désactivée",
   'The local API server is not running. Start everything with: npm run dev':
     "Le serveur API local n'est pas démarré. Lancez tout avec : npm run dev",
+  'Local development: no email is sent. Your code is {code}':
+    "Développement local : aucun e-mail n'est envoyé. Votre code est {code}",
   'Could not read the image': "Impossible de lire l'image",
   'Image too large (max 20 MB)': 'Image trop lourde (20 Mo maximum)',
 }

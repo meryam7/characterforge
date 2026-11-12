@@ -15,7 +15,7 @@ export type LoginResult =
   | { status: 'ok'; user: User; recovery_codes?: string[] }
   | { status: 'mfa_required'; challenge: string }
   | { status: 'mfa_enrol_required'; challenge: string }
-  | { status: 'verify_email_required'; challenge: string; email: string }
+  | { status: 'verify_email_required'; challenge: string; email: string; dev_code?: string } // dev_code: local dev only
 
 export type MfaSetup = { secret: string; otpauth_uri: string }
 

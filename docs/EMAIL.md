@@ -35,3 +35,13 @@ can't be skipped. Staging and local use `EMAIL_PROVIDER = "log"`: real addresses
 (`npx wrangler pages deployment tail --project-name characterforge` or the dashboard), and **@example.com** addresses
 go to a test inbox (`GET /api/test/inbox?email=…@example.com`, 404 in production) used by the automated tests.
 To test real delivery on staging, set the provider + key with `--env preview` too.
+**Local dev** (`ENVIRONMENT=development` + `log`): the code is also returned as `dev_code` and shown on the "Check your
+email" screen (never in staging/production). To send real emails locally, put `EMAIL_PROVIDER=brevo`, `EMAIL_FROM=...`
+and `EMAIL_API_KEY=...` in `.dev.vars` (it overrides `wrangler.toml` vars).
+
+### Quickest real setup: Brevo (free, no domain needed)
+1. Sign up at brevo.com with the address you want to send from (it becomes a verified sender).
+2. SMTP & API → API keys → *Generate a new API key*.
+3. `[env.preview.vars]` / `[env.production.vars]`: `EMAIL_PROVIDER = "brevo"`, `EMAIL_FROM = "CharaForge <that-address>"`.
+4. `npx wrangler pages secret put EMAIL_API_KEY --project-name characterforge --env preview` (and `--env production`), deploy.
+A Gmail sender may land in spam; a sender on your own domain (authenticated in Brevo → Senders & domains) delivers best.

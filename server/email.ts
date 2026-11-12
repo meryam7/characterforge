@@ -91,18 +91,20 @@ async function deliver(env: Env, to: string, msg: { subject: string; text: strin
   if (!res.ok) throw new Error(`Email provider error ${res.status}`) // body not logged: may echo the address
 }
 
-/** Creates a fresh code (older ones of the same purpose are deleted) and sends it. Enforces the resend cooldown. */
+/** Creates a fresh code (older ones of the same purpose are deleted) and sends it. Enforces the resend cooldown.
+ * Returns the code ONLY in local development with EMAIL_PROVIDER=log (no real mailbox), so the UI can show it. */
 export async function sendCode(
   c: Context<AppEnv>, user: { id: number; email: string }, purpose: CodePurpose, lang: 'en' | 'fr',
   opts: { reuseRecent?: boolean } = {},
-) {
+): Promise<string | undefined> {
   const db = c.env.DB
+  const devShow = c.env.ENVIRONMENT === 'development' && (c.env.EMAIL_PROVIDER || 'log').toLowerCase() === 'log'
   const last = await db.prepare('SELECT created_at FROM email_codes WHERE user_id = ? AND purpose = ? ORDER BY id DESC LIMIT 1')
     .bind(user.id, purpose)
     .first<{ created_at: number }>()
   if (last && last.created_at > nowSec() - RESEND_COOLDOWN) {
-    if (opts.reuseRecent) return // a code was just sent and is still valid: don't spam the inbox, don't error
-    fail(429, 'Please wait a minute before asking for a new code', { retry_after: RESEND_COOLDOWN - (nowSec() - last.created_at) })
+    if (opts.reuseRecent && !devShow) return // a code was just sent and is still valid: don't spam the inbox, don't error
+    if (!opts.reuseRecent) fail(429, 'Please wait a minute before asking for a new code', { retry_after: RESEND_COOLDOWN - (nowSec() - last.created_at) })
   }
   const code = newCode()
   const now = nowSec()
@@ -115,6 +117,10 @@ export async function sendCode(
   if (testInbox) stmts.push(db.prepare('INSERT INTO test_inbox (email, purpose, code) VALUES (?, ?, ?)').bind(user.email.toLowerCase(), purpose, code))
   await db.batch(stmts)
   if (testInbox) return
+  if (devShow) {
+    await deliver(c.env, user.email, render(purpose, code, lang))
+    return code
+  }
   try {
     await deliver(c.env, user.email, render(purpose, code, lang))
   } catch (err) {

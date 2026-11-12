@@ -72,8 +72,11 @@ const maskEmail = (e: string) => e.replace(/^(.)[^@]*(@.*)$/, (_, a: string, d: 
 /** After the password (or a code) is accepted: next required step, or a session. Order: email → MFA → session. */
 async function nextStep(c: Context<AppEnv>, user: UserRow, lang: 'en' | 'fr', status = 200) {
   if (!user.email_verified) {
-    await sendCode(c, user, 'verify', lang, { reuseRecent: true })
-    return c.json({ status: 'verify_email_required', challenge: await newChallenge(c, user.id, 'email_verify'), email: maskEmail(user.email) }, status as 200)
+    const devCode = await sendCode(c, user, 'verify', lang, { reuseRecent: true })
+    return c.json(
+      { status: 'verify_email_required', challenge: await newChallenge(c, user.id, 'email_verify'), email: maskEmail(user.email), dev_code: devCode },
+      status as 200,
+    )
   }
   if (isAdmin(c.env, user.email) && !user.mfa_enabled) {
     return c.json({ status: 'mfa_enrol_required', challenge: await newChallenge(c, user.id, 'mfa_enrol') }, status as 200)
@@ -209,8 +212,8 @@ auth.post('/email/resend', async (c) => {
   const user = await useChallenge(c, body.challenge, 'email_verify')
   await rateLimit(c, `email-send:${user.id}`, 5, 3600)
   await rateLimit(c, `email-send-ip:${c.get('ipHash')}`, 20, 3600)
-  await sendCode(c, user, 'verify', pickLang(body.lang))
-  return c.json({ ok: true })
+  const devCode = await sendCode(c, user, 'verify', pickLang(body.lang))
+  return c.json({ ok: true, dev_code: devCode })
 })
 
 // ------------------------------------------------------------------ forgot / reset password (code by email)

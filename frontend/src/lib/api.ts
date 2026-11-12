@@ -82,7 +82,7 @@ export const api = {
     json<LoginResult>('/api/auth/register', post({ email, password, display_name, accept_terms, lang })),
   login: (email: string, password: string, lang: string) => json<LoginResult>('/api/auth/login', post({ email, password, lang })),
   emailVerify: (challenge: string, code: string, lang: string) => json<LoginResult>('/api/auth/email/verify', post({ challenge, code, lang })),
-  emailResend: (challenge: string, lang: string) => json<{ ok: boolean }>('/api/auth/email/resend', post({ challenge, lang })),
+  emailResend: (challenge: string, lang: string) => json<{ ok: boolean; dev_code?: string }>('/api/auth/email/resend', post({ challenge, lang })),
   forgotPassword: (email: string, lang: string) => json<{ ok: boolean }>('/api/auth/password/forgot', post({ email, lang })),
   resetPassword: (email: string, code: string, new_password: string) =>
     json<{ ok: boolean }>('/api/auth/password/reset', post({ email, code, new_password })),

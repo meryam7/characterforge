@@ -11,7 +11,7 @@ type Step =
   | { kind: 'mfa'; challenge: string }
   | { kind: 'enrol'; challenge: string; setup: MfaSetup | null }
   | { kind: 'recovery'; codes: string[]; user: User }
-  | { kind: 'email'; challenge: string; email: string }
+  | { kind: 'email'; challenge: string; email: string; devCode?: string }
   | { kind: 'forgot' }
   | { kind: 'reset' }
 
@@ -42,7 +42,7 @@ export default function AuthForm({ onAuthed, run }: { onAuthed: (u: User) => voi
     } else if (res.status === 'mfa_required') {
       setStep({ kind: 'mfa', challenge: res.challenge })
     } else if (res.status === 'verify_email_required') {
-      setStep({ kind: 'email', challenge: res.challenge, email: res.email })
+      setStep({ kind: 'email', challenge: res.challenge, email: res.email, devCode: res.dev_code })
       setCooldown(60)
     } else {
       const setup = await api.mfaEnrolStart(res.challenge)
@@ -85,6 +85,11 @@ export default function AuthForm({ onAuthed, run }: { onAuthed: (u: User) => voi
         <p className="text-sm text-violet-200">
           {t('We sent a 6-digit code to {email}. Enter it to confirm that this email address is yours.', { email: step.email })}
         </p>
+        {step.devCode && (
+          <p className="rounded-lg border border-amber-400/40 bg-amber-400/10 p-2 text-xs text-amber-200">
+            {t('Local development: no email is sent. Your code is {code}', { code: step.devCode })}
+          </p>
+        )}
         <CodeInput id="email-code" value={code} onChange={setCode} />
         <button type="submit" className="btn-primary w-full" disabled={code.length !== 6}>{t('Confirm my email')}</button>
         <div className="flex items-center justify-between text-xs">
@@ -92,7 +97,11 @@ export default function AuthForm({ onAuthed, run }: { onAuthed: (u: User) => voi
             type="button"
             className="text-violet-300 underline disabled:no-underline disabled:opacity-50"
             disabled={cooldown > 0}
-            onClick={() => run(t('Sending a new code'), async () => { await api.emailResend(step.challenge, lang); setCooldown(60) })}
+            onClick={() => run(t('Sending a new code'), async () => {
+              const r = await api.emailResend(step.challenge, lang)
+              if (r.dev_code) setStep({ ...step, devCode: r.dev_code })
+              setCooldown(60)
+            })}
           >
             {cooldown > 0 ? t('Send a new code ({n} s)', { n: cooldown }) : t('Send a new code')}
           </button>
