@@ -1,11 +1,12 @@
-/** Email codes: generation, hashing, delivery (Resend or Brevo), checking.
- * Config: EMAIL_PROVIDER = resend | brevo | log, EMAIL_FROM (e.g. "CharaForge <no-reply@yourdomain.com>"),
+/** Email codes: generation, hashing, delivery (Gmail SMTP, Resend or Brevo), checking.
+ * Config: EMAIL_PROVIDER = gmail | resend | brevo | log (gmail: EMAIL_FROM address = Gmail account, EMAIL_API_KEY = its app password), EMAIL_FROM (e.g. "CharaForge <no-reply@yourdomain.com>"),
  * secret EMAIL_API_KEY. "log" (dev/staging only) prints the code to the Functions log instead of sending it.
  * Outside production, codes for @example.com addresses go to the test_inbox table (for automated tests). */
 import type { Context } from 'hono'
 import { sha256 } from './crypto'
 import type { AppEnv, Env } from './env'
 import { fail } from './http'
+import { smtpSend } from './smtp'
 
 export type CodePurpose = 'verify' | 'reset'
 export const CODE_TTL = 15 * 60
@@ -69,6 +70,15 @@ async function deliver(env: Env, to: string, msg: { subject: string; text: strin
     return
   }
   if (!env.EMAIL_API_KEY) throw new Error('EMAIL_API_KEY is not set')
+  if (provider === 'gmail') {
+    const m = from.match(/^(.*)<(.+)>$/)
+    const address = (m ? m[2] : from).trim()
+    await smtpSend({
+      host: 'smtp.gmail.com', port: 465, user: address, pass: env.EMAIL_API_KEY.replace(/\s+/g, ''),
+      fromName: m ? m[1].trim() || 'CharaForge' : 'CharaForge', fromEmail: address, to, ...msg,
+    })
+    return
+  }
   let res: Response
   if (provider === 'resend') {
     res = await fetch('https://api.resend.com/emails', {

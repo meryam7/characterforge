@@ -21,8 +21,8 @@ binding = "AI"
 [env.production.vars]
 ENVIRONMENT = "production"
 # Email codes (sign-up verification, password reset). Needs the secret EMAIL_API_KEY. See docs/EMAIL.md.
-EMAIL_PROVIDER = "brevo"             # resend | brevo  (npm run email:setup stores the key and the sender)
-EMAIL_FROM = "CharaForge <hello@creativecomet.tn>"   # must be a sender/domain verified with the provider
+EMAIL_PROVIDER = "gmail"             # gmail | resend | brevo  (secret EMAIL_API_KEY = Gmail app password)
+EMAIL_FROM = "CharaForge <boualy.meryam.v@gmail.com>"   # must be a sender/domain verified with the provider
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "40"
 ADMIN_EMAILS = ""
@@ -40,8 +40,8 @@ binding = "AI"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"
-EMAIL_PROVIDER = "brevo"             # without the EMAIL_API_KEY secret, staging falls back to "log"; @example.com → test inbox
-EMAIL_FROM = "CharaForge <hello@creativecomet.tn>"
+EMAIL_PROVIDER = "gmail"             # without the EMAIL_API_KEY secret, staging falls back to "log"; @example.com → test inbox
+EMAIL_FROM = "CharaForge <boualy.meryam.v@gmail.com>"
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "10"
 SIGNUP_LIMIT_PER_HOUR = "200"        # test environment: the automated suites create many accounts
@@ -70,5 +70,5 @@ ADMIN_EMAILS = "admin-local@example.com"
 #   npx wrangler pages secret put MFA_ENCRYPTION_KEY --project-name characterforge [--env preview]
 #   npx wrangler pages secret put LOG_HASH_SALT      --project-name characterforge [--env preview]
 #   npx wrangler pages secret put ALERT_WEBHOOK_URL  --project-name characterforge [--env preview]   (optional)
-#   npx wrangler pages secret put EMAIL_API_KEY      --project-name characterforge [--env preview]   (Resend/Brevo key)
+#   npx wrangler pages secret put EMAIL_API_KEY      --project-name characterforge [--env preview]   (Gmail app password, or Resend/Brevo key)
 # Locally they come from .dev.vars (git-ignored).

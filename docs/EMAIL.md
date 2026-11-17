@@ -39,11 +39,12 @@ To test real delivery on staging, set the provider + key with `--env preview` to
 email" screen (never in staging/production). To send real emails locally, put `EMAIL_PROVIDER=brevo`, `EMAIL_FROM=...`
 and `EMAIL_API_KEY=...` in `.dev.vars` (it overrides `wrangler.toml` vars).
 
-### One command: `npm run email:setup` (scripts/email-setup.mjs)
-Configured provider: **Brevo**, sender `hello@creativecomet.tn` (wrangler.toml). After creating the Brevo account and an API
-key, run `npm run email:setup`: it checks the key and sender, sends a test email, stores `EMAIL_API_KEY` for staging +
-production (Pages secrets) and `.dev.vars`, and redeploys staging. Then `npm run deploy:production`.
-Until the secret exists, staging/local fall back to `log` (production answers 503).
+### Current setup: Gmail SMTP (`EMAIL_PROVIDER = "gmail"`, server/smtp.ts)
+Codes are sent from **boualy.meryam.v@gmail.com** (`EMAIL_FROM`) through `smtp.gmail.com:465` (Cloudflare TCP sockets) with a
+Google **app password** stored as the `EMAIL_API_KEY` secret (staging + production, and `.dev.vars` locally).
+Gmail limit: about **500 emails/day**; replies go to that inbox. Change or rotate the password (e.g. revoked at
+https://myaccount.google.com/apppasswords): `npm run email:setup`, then `npm run deploy:production`.
+SMTP `AUTH failed (535)` in the Functions log = wrong/revoked app password. For more volume, switch to Brevo/Resend below.
 
 ### Quickest real setup: Brevo (free, no domain needed)
 1. Sign up at brevo.com with the address you want to send from (it becomes a verified sender).

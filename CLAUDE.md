@@ -29,7 +29,7 @@ drawing, region selection, compositing, background removal, zips. `server/` (Hon
 | Validation + `ApiError`/`fail()` + time helpers | `server/http.ts` |
 | Ownership checks, files, history `recordActivity`, rate limit, output shapes | `server/db.ts` |
 | PBKDF2 passwords, password policy | `server/security.ts` |
-| Email codes (verification, password reset), Resend/Brevo delivery | `server/email.ts` (setup: `docs/EMAIL.md`) |
+| Email codes (verification, password reset), Gmail SMTP (`smtp.ts`) / Resend / Brevo delivery | `server/email.ts` (setup: `docs/EMAIL.md`) |
 | Workers AI models, prompt building, `STYLES`, `NEGATIVE` | `server/ai.ts` |
 | Routes | `server/routes/{auth,characters,history,gallery,ai,files,admin}.ts` |
 | DB schema | `migrations/*.sql` (D1) |
@@ -56,7 +56,7 @@ npm run typecheck                                   # server + frontend tsc
 npm run smoke; npm run test:security               # vs :8788 (BASE=https://staging... for staging; AI=1 includes AI)
 npm run check:security; npm run audit               # parameterized-SQL / bundle-secret / XSS-sink scan; npm audit
 npm run check:i18n                                  # every t('...') string has a French translation
-npm run email:setup                                 # Brevo key → secrets (staging+prod+.dev.vars), test mail, staging deploy
+npm run email:setup                                 # Gmail app password → secrets (staging+prod+.dev.vars), staging deploy
 npm run deploy:staging                              # ALWAYS first; test staging; then npm run deploy:production
 npm run backup -- characterforge; npm run restore:test -- backups/<file>.cfbk   # needs BACKUP_PASSPHRASE
 ```
@@ -91,7 +91,7 @@ art. Test AI against staging.
   together on material changes. `OPERATOR`, `CONTACT_EMAIL`, `GOVERNING_LAW` are still placeholders for the owner.
 - Accounts are usable only after the emailed 6-digit code is confirmed (`email_verified`). Tests get codes for
   `@example.com` addresses from `/api/test/inbox` (non-production only) via `completeEmail()` in `scripts/lib/client.mjs`.
-- Secrets: `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`, `EMAIL_API_KEY` (production), optional `ALERT_WEBHOOK_URL`, stored as Pages secrets per environment
+- Secrets: `MFA_ENCRYPTION_KEY`, `LOG_HASH_SALT`, `EMAIL_API_KEY` (Gmail app password), optional `ALERT_WEBHOOK_URL`, stored as Pages secrets per environment
   (`.dev.vars` locally), server-only. Vars live in `wrangler.toml`. Deploy staging → test → production, never the reverse.
 
 ## Environment notes

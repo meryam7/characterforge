@@ -37,7 +37,7 @@ const en: Record<LegalDoc, Page> = {
         'Everything is private by default. A design becomes public only when you click "Share to community": it then appears in the community gallery and on its share page, with the character name, the prompt and your display name (never your email). Other members can like it and use it as the starting point of their own character. You can unshare it at any time.',
       ] },
       { h: 'Who processes your data', p: [
-        'CharaForge runs on Cloudflare (hosting, database, file storage, AI inference), which processes data on our behalf on its global network. Verification and password-reset codes are sent by our email provider (Resend or Brevo), which receives only your email address and the message. Data may therefore be processed outside your country, with the safeguards these providers offer (including EU Standard Contractual Clauses).',
+        'CharaForge runs on Cloudflare (hosting, database, file storage, AI inference), which processes data on our behalf on its global network. Verification and password-reset codes are sent by our email provider (Google Gmail), which receives only your email address and the message. Data may therefore be processed outside your country, with the safeguards these providers offer (including EU Standard Contractual Clauses).',
       ] },
       { h: 'How long we keep it', p: [
         'Account data and content: until you delete them or your account. "Delete account" erases your account, characters, designs, files and history from the live database immediately.',
