@@ -25,7 +25,7 @@ EMAIL_PROVIDER = "gmail"             # gmail | resend | brevo  (secret EMAIL_API
 EMAIL_FROM = "CharaForge <boualy.meryam.v@gmail.com>"   # must be a sender/domain verified with the provider
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "40"
-ADMIN_EMAILS = ""
+ADMIN_EMAILS = "boualy.meryam.v@gmail.com"   # owner; admins must set up MFA at first login
 
 # ---------------------------------------------------------------- staging (Pages "preview" environment)
 [env.preview]
@@ -45,7 +45,7 @@ EMAIL_FROM = "CharaForge <boualy.meryam.v@gmail.com>"
 AI_ENABLED = "true"
 AI_DAILY_LIMIT = "10"
 SIGNUP_LIMIT_PER_HOUR = "200"        # test environment: the automated suites create many accounts
-ADMIN_EMAILS = "admin-staging@example.com"
+ADMIN_EMAILS = "admin-staging@example.com,boualy.meryam.v@gmail.com"
 
 # ---------------------------------------------------------------- local dev (npm run dev): uses these top-level values
 [[d1_databases]]

@@ -26,6 +26,22 @@ for (const [file, hint] of [[WRANGLER, 'npm install'], [VITE, 'npm --prefix fron
   }
 }
 
+// Windows Smart App Control / Device Guard may block workerd.exe (the local Cloudflare runtime). Then only the website
+// runs locally and vite.config.ts sends /api to the staging server.
+const WORKERD = path.join(root, 'node_modules', '@cloudflare', 'workerd-windows-64', 'bin', 'workerd.exe')
+if (process.platform === 'win32' && fs.existsSync(WORKERD)) {
+  const r = spawnSync(WORKERD, ['--version'], { timeout: 15000 })
+  if (r.error || r.status !== 0) {
+    say('[33mWindows blocks workerd.exe (Smart App Control), so the local API cannot run on this PC.[0m')
+    if (args.includes('--api-only') || args.includes('--migrate-only')) process.exit(1)
+    say('starting the website only; /api goes to the staging server (see vite.config.ts).')
+    const web = spawn(process.execPath, [VITE, '--port', '5173'], { cwd: path.join(root, 'frontend'), env: { ...env, CHARAFORGE_API: 'staging' }, stdio: 'inherit' })
+    web.on('exit', (code) => process.exit(code ?? 0))
+    process.on('SIGINT', () => web.kill())
+    await new Promise(() => {}) // stay here until the website stops (no local API steps)
+  }
+}
+
 // 1. local secrets (never committed; random values are fine for local dev)
 const devVars = path.join(root, '.dev.vars')
 if (!fs.existsSync(devVars)) {
@@ -87,6 +103,7 @@ process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
 start('api', 36, WRANGLER, ['pages', 'dev', '--port', '8788', '--ip', '127.0.0.1', '--persist-to', STATE], root)
+env.CHARAFORGE_NO_AUTO_API = '1' // Vite must not start a second API
 if (!args.includes('--api-only')) start('web', 32, VITE, ['--port', '5173'], path.join(root, 'frontend'))
 say('open http://localhost:5173  (API: http://127.0.0.1:8788). Ctrl+C to stop.')
 say('email codes are printed in the [api] lines (email_log_mode); AI uses preview art locally.')

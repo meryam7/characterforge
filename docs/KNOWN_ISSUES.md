@@ -42,3 +42,10 @@ Last verified 2026-11-05. Add new ones here instead of re-discovering them.
 It means Vite (:5173) is running but the API (:8788) is not. Use `npm run dev` (starts both). The old top-level `[ai]`
 binding made `wrangler pages dev` require a Cloudflare login and fail; it was removed (AI is staging/production only).
 The Vite proxy now answers a clear 503 JSON message when the API is down.
+
+## Windows blocks workerd.exe ("spawn UNKNOWN", "Device Guard blocked this app")
+Windows 11 Smart App Control can block `workerd.exe` (the local Cloudflare runtime), so `wrangler pages dev` dies with
+`spawn UNKNOWN`. Then `npm run dev` / Vite detect it and send `/api` to **staging** (`vite.config.ts`, Origin rewritten
+for the CSRF check): staging accounts, real Gmail emails, real AI. Force a mode with `CHARAFORGE_API=local|staging`.
+To get the local API back: Windows Security → App & browser control → Smart App Control → Off (can't be turned back on
+without resetting Windows), or develop on a machine where workerd runs.

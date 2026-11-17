@@ -97,6 +97,7 @@ art. Test AI against staging.
 ## Environment notes
 Windows 11, Node 24. Git needs `http.sslBackend=schannel` (already set in this repo). Node `fetch` to Cloudflare is
 flaky from this machine, so use `node --dns-result-order=ipv4first --network-family-autoselection-attempt-timeout=3000`.
+Smart App Control blocks `workerd.exe` here, so local dev uses the staging API (docs/KNOWN_ISSUES.md).
 R2 is not enabled on the account (it needs a card), so images live in D1.
 
 ## Keeping docs cheap & correct
