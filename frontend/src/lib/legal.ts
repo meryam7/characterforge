@@ -113,7 +113,7 @@ const fr: Record<LegalDoc, Page> = {
         'Tout est privé par défaut. Un design ne devient public que si vous cliquez sur « Partager à la communauté » : il apparaît alors dans la galerie et sur sa page de partage, avec le nom du personnage, le prompt et votre nom affiché (jamais votre e-mail). Les autres membres peuvent l\'aimer et s\'en servir comme point de départ de leur propre personnage. Vous pouvez annuler le partage à tout moment.',
       ] },
       { h: 'Sous-traitants', p: [
-        'CharaForge fonctionne sur Cloudflare (hébergement, base de données, stockage, inférence IA), qui traite les données pour notre compte sur son réseau mondial. Les codes de vérification et de réinitialisation sont envoyés par notre prestataire d\'e-mail (Resend ou Brevo), qui ne reçoit que votre adresse et le message. Les données peuvent donc être traitées hors de votre pays, avec les garanties offertes par ces prestataires (dont les clauses contractuelles types de l\'UE).',
+        'CharaForge fonctionne sur Cloudflare (hébergement, base de données, stockage, inférence IA), qui traite les données pour notre compte sur son réseau mondial. Les codes de vérification et de réinitialisation sont envoyés par notre prestataire d\'e-mail (Google Gmail), qui ne reçoit que votre adresse et le message. Les données peuvent donc être traitées hors de votre pays, avec les garanties offertes par ces prestataires (dont les clauses contractuelles types de l\'UE).',
       ] },
       { h: 'Durées de conservation', p: [
         'Données de compte et contenus : jusqu\'à leur suppression ou celle de votre compte. « Supprimer mon compte » efface immédiatement compte, personnages, designs, fichiers et historique de la base active.',
