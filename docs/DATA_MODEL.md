@@ -7,7 +7,7 @@
 | `mfa_recovery_codes` | (user_id, code_hash SHA-256) PK, used_at |
 | `auth_challenges` | id_hash PK, user_id, kind (`mfa_verify`/`mfa_enrol`), attempts (max 5), expires_at (5 min) |
 | `security_events` | id, ts, type, severity (info/warn/alert), user_id, subject (keyed hash of email/key), ip_hash, path, detail (redacted JSON), created_at. 90-day retention |
-| `characters` | id, user_id → users CASCADE, name, description, style, seed, reference_key, embedding, created_at |
+| `characters` | id, user_id → users CASCADE, name, description, style, seed, reference_key, embedding, traits (JSON builder choices, 0005), remixed_from, created_at |
 | `designs` | id, character_id → characters CASCADE, parent_id, kind, source, prompt, image_key, consistency, is_public, published_at, created_at |
 | `activities` | history. user_id, action, character_id/design_id (no FK), character_name, detail, thumb_key, created_at |
 | `files` | key PK (`d/` `r/` `t/`), user_id, content_type, data BLOB, created_at |

@@ -1,3 +1,4 @@
+import type { Traits } from './traits'
 // Mirrors the API output shapes in server/db.ts (characterOut, designOut, activityOut) and server/routes/*.
 export type User = {
   id: number
@@ -45,6 +46,7 @@ export type Character = {
   style: string
   seed: number
   embedding: number[] | null
+  traits: Traits | null // character builder choices (lib/traits.ts)
   reference_url: string | null
   cover_url: string | null
   design_count: number

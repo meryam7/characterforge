@@ -38,7 +38,7 @@ SecuritySummary { last_24h[], recent_alerts[], users{n,mfa}, active_sessions }  
 | Route | Access | Notes |
 |---|---|---|
 | GET `/health` | public | `{status, env, ai, storage}` |
-| GET/POST `/characters`, GET/DELETE `/characters/:id` | session + owner | |
+| GET/POST `/characters`, GET/DELETE `/characters/:id` | session + owner | POST `{name, description?, style?, traits?, seed?}`: `traits` = builder choices validated by `cleanTraits` (lib/traits.ts), 422 on unknown ids |
 | POST `/characters/:id/reference` (multipart image, thumb, embedding) | owner | WebP/PNG/JPEG ≤ 1.5 MB |
 | GET/POST `/characters/:id/designs` (multipart image, thumb, kind, source, prompt, parent_id?, consistency?, embedding?) | owner | 60/min |
 | POST `/characters/:id/exported` `{detail, design_id?}` | owner | history only |

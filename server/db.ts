@@ -1,6 +1,7 @@
 /** Data access helpers shared by routes: ownership checks, files, history, rate limits, output shapes.
  * ALL SQL uses bound parameters (?). The only interpolations are placeholder lists ('?,?,?') and constant
  * column/clause names - never user input. `npm run check:security` enforces this. */
+import type { Traits } from '../frontend/src/lib/traits'
 import type { Context } from 'hono'
 import type { ActivityRow, AppEnv, CharacterRow, DesignRow, Env } from './env'
 import { fail, now } from './http'
@@ -97,6 +98,7 @@ export function characterOut(ch: CharacterRow, stats: { design_count: number; co
     style: ch.style,
     seed: ch.seed,
     embedding: ch.embedding ? (JSON.parse(ch.embedding) as number[]) : null,
+    traits: ch.traits ? (JSON.parse(ch.traits) as Traits) : null,
     reference_url: fileUrl(ch.reference_key),
     cover_url: fileUrl(stats.cover_key ?? ch.reference_key),
     design_count: stats.design_count,

@@ -4,6 +4,7 @@ import {
   characterOut, characterStats, deleteFiles, designOut, ownedCharacter, prepareFile, rateLimit, recordActivity,
 } from '../db'
 import type { AppEnv, CharacterRow, DesignRow } from '../env'
+import { cleanTraits, traitsSummary } from '../../frontend/src/lib/traits'
 import { fail, int, jsonBody, str } from '../http'
 import { requireUser } from '../middleware'
 
@@ -41,11 +42,20 @@ r.post('/', async (c) => {
   const name = str(body.name, 'name', { min: 1, max: 120 })
   const description = str(body.description, 'description', { max: 2000, optional: true })
   const style = str(body.style, 'style', { max: 60, optional: true }) || 'anime'
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0] & 0x7fffffff
-  const ch = await c.env.DB.prepare('INSERT INTO characters (user_id, name, description, style, seed) VALUES (?, ?, ?, ?, ?) RETURNING *')
-    .bind(uid, name, description, style, seed)
+  let traits: ReturnType<typeof cleanTraits>
+  try {
+    traits = cleanTraits(body.traits)
+  } catch (err) {
+    return fail(422, (err as Error).message)
+  }
+  // optional seed from the builder's live preview, so the first preview art matches what the user saw
+  const seed = int(body.seed, 'seed', true) ?? crypto.getRandomValues(new Uint32Array(1))[0] & 0x7fffffff
+  if (seed < 0 || seed > 0x7fffffff) fail(422, 'seed: out of range')
+  const ch = await c.env.DB.prepare('INSERT INTO characters (user_id, name, description, style, seed, traits) VALUES (?, ?, ?, ?, ?, ?) RETURNING *')
+    .bind(uid, name, description, style, seed, traits ? JSON.stringify(traits) : null)
     .first<CharacterRow>()
-  await recordActivity(c.env.DB, uid, 'created', ch!, { detail: [style, description.slice(0, 200)].filter(Boolean).join(' · ') }).run()
+  const detail = [style, traitsSummary(traits, 'en', 4).join(', '), description].filter(Boolean).join(' · ').slice(0, 200)
+  await recordActivity(c.env.DB, uid, 'created', ch!, { detail }).run()
   return c.json(characterOut(ch!, { design_count: 0, cover_key: null }), 201)
 })
 

@@ -42,6 +42,7 @@ export type CharacterRow = {
   seed: number
   reference_key: string | null
   embedding: string | null
+  traits?: string | null // JSON, see frontend/src/lib/traits.ts
   remixed_from?: number | null
   created_at: string
 }

@@ -24,7 +24,10 @@ Findings that shaped this:
    `composite(base, ai, mask)`, so only the selected pixels change.
 3. Fallback: `ApiError.data.fallback === true` → `mockCharacter(prompt, seed)` / `mockInpaint()`, and a notice is shown.
 
-Prompt = `description, extra, STYLES[style], full body character design, single character, centered, plain white background`.
+Prompt (no traits) = `description, extra, STYLES[style], full body character design, single character, centered, plain white background`.
+With builder traits = `traits.main, extra, STYLES[style], full body, single character, plain white background, description, traits.details`
+(`traitsPrompt()` in `frontend/src/lib/traits.ts`; SD 1.5 reads only ~75 tokens, so identity first: subject, skin, hair, eyes, outfit).
+Preview art (`mockCharacter(prompt, seed, traits)`) draws trait colours, build, height, hair, ears/horns/wings, held item.
 Consistency = cosine similarity of 64-bin colour histograms (`identity.ts`) against `characters.embedding`.
 
 ## Knobs

@@ -26,6 +26,18 @@ ok((await a.call('GET', '/api/auth/me')).data.display_name === 'Smoke a', 'me')
 // characters + designs
 const ch = (await a.call('POST', '/api/characters', { json: { name: 'Mira', description: 'silver hair mage', style: 'anime' } })).data
 ok(ch.id && ch.seed > 0 && ch.embedding === null, 'create character')
+const builder = await register('builder')
+const built = await builder.call('POST', '/api/characters', { json: {
+  name: 'Built', description: '', style: 'anime', seed: 12345,
+  traits: { gender: 'female', species: 'elf', hairColor: 'platinum', hairLength: 'long', accessories: ['cape', 'earrings'], skin: '' },
+} })
+ok(built.status === 201 && built.data.seed === 12345 && built.data.traits?.species === 'elf' && built.data.traits.accessories.length === 2
+  && !('skin' in built.data.traits), `character builder traits saved ${built.status}`)
+for (const [bad, why] of [[{ evil: 'x' }, 'unknown trait'], [{ skin: '<b>' }, 'unknown choice'], [{ features: ['horns', 'wings', 'tail', 'halo'] }, 'too many']]) {
+  ok((await builder.call('POST', '/api/characters', { json: { name: 'Bad', traits: bad } })).status === 422, `traits rejected: ${why}`)
+}
+ok((await builder.call('POST', '/api/characters', { json: { name: 'Bad', seed: -5 } })).status === 422, 'seed out of range rejected')
+await builder.call('DELETE', '/api/auth/me', { json: { password: PASSWORD } })
 const d1 = await a.call('POST', `/api/characters/${ch.id}/designs`, { form: designForm() })
 ok(d1.status === 201 && d1.data.image_url.startsWith('/api/files/d/'), `upload design ${d1.status}`)
 const img = await a.call('GET', d1.data.image_url)

@@ -1,20 +1,43 @@
-/** Procedural "preview art", used when Workers AI is off, busy or over its daily limit.
- * Colours come from the character SEED (identity), the pose from the PROMPT. */
+/** Procedural "preview art", used when Workers AI is off, busy or over its daily limit, and as the builder's live
+ * preview. Builder traits (lib/traits.ts) drive colours, body, hair and features; anything not chosen comes from the
+ * character SEED (identity); the arm pose comes from the PROMPT. */
+import { hasTrait, traitHex, type Traits } from '../traits'
 import { canvas, ctx2d, H, hash, rng, W } from './image'
 
 type RGB = [number, number, number]
 const css = ([r, g, b]: RGB) => `rgb(${r},${g},${b})`
+const hexRgb = (hex?: string): RGB | null =>
+  hex ? [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)] : null
+const shade = (c: RGB, d: number): RGB => c.map((v) => Math.max(0, Math.min(255, v + d))) as RGB
 
-export function mockCharacter(prompt: string, seed: number): HTMLCanvasElement {
+const BUILD: Record<string, [number, number]> = { // [shoulders, hips] width factors
+  slim: [0.85, 0.85], slender: [0.88, 0.86], average: [1, 1], athletic: [1.08, 0.98], muscular: [1.2, 1.05],
+  curvy: [0.98, 1.18], stocky: [1.15, 1.12], plus: [1.28, 1.3], lanky: [0.8, 0.8],
+}
+const HEIGHT: Record<string, number> = { tiny: 0.8, short: 0.9, average: 1, tall: 1.04, towering: 1.08 }
+const HAIR_DROP: Record<string, number> = { bald: 0, buzz: 0, short: 60, chin: 100, shoulder: 150, long: 270, verylong: 380 }
+const ROBES = ['gown', 'mage', 'wizard', 'priest', 'kimono']
+const BEAST = ['catfolk', 'foxfolk', 'wolffolk']
+
+export function mockCharacter(prompt: string, seed: number, traits?: Traits | null): HTMLCanvasElement {
   const rand = rng(seed)
   const int = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1))
   const col = (lo = 40, hi = 215): RGB => [int(lo, hi), int(lo, hi), int(lo, hi)]
   const skins: RGB[] = [[255, 224, 196], [241, 194, 153], [198, 134, 96], [141, 85, 54]]
-  const skin = skins[int(0, 3)]
-  const hair = col()
-  const outfit = col()
-  const pants = col()
-  const shoes = col(30, 120)
+  // seeded defaults are drawn in a fixed order, so a character keeps its look when a trait is added
+  const seeded = { skin: skins[int(0, 3)], hair: col(), outfit: col(), pants: col(), shoes: col(30, 120) }
+  const has = (id: string, v: string) => hasTrait(traits, id, v)
+  const pickT = (id: string) => (typeof traits?.[id] === 'string' ? (traits[id] as string) : '')
+  const skin = hexRgb(traitHex(traits, 'skin')) ?? seeded.skin
+  const hair = hexRgb(traitHex(traits, 'hairColor')) ?? seeded.hair
+  const outfit = hexRgb(traitHex(traits, 'mainColor')) ?? seeded.outfit
+  const pants = hexRgb(traitHex(traits, 'accentColor')) ?? seeded.pants
+  const shoes: RGB = has('footwear', 'barefoot') ? skin : has('footwear', 'greaves') ? [150, 155, 165] : seeded.shoes
+  const eye = hexRgb(traitHex(traits, 'eyeColor')) ?? ([30, 20, 60] as RGB)
+  const [sw, hw] = BUILD[pickT('build')] ?? [1, 1]
+  const height = (HEIGHT[pickT('height')] ?? 1) * (has('age', 'child') ? 0.8 : 1)
+  const drop = HAIR_DROP[pickT('hairLength')] ?? 60
+  const species = pickT('species')
   const arm = (hash(prompt) % 70) - 35
 
   const c = canvas()
@@ -22,6 +45,10 @@ export function mockCharacter(prompt: string, seed: number): HTMLCanvasElement {
   g.fillStyle = '#fff'
   g.fillRect(0, 0, W, H)
   const cx = W / 2
+  g.save()
+  g.translate(cx, 715) // scale the figure around the feet
+  g.scale(height, height)
+  g.translate(-cx, -715)
   const rect = (x0: number, y0: number, x1: number, y1: number, r: number, fill: RGB) => {
     g.fillStyle = css(fill)
     g.beginPath()
@@ -37,43 +64,188 @@ export function mockCharacter(prompt: string, seed: number): HTMLCanvasElement {
   const line = (x0: number, y0: number, x1: number, y1: number, width: number, stroke: RGB) => {
     g.strokeStyle = css(stroke)
     g.lineWidth = width
+    g.lineCap = 'round'
     g.beginPath()
     g.moveTo(x0, y0)
     g.lineTo(x1, y1)
     g.stroke()
   }
+  const poly = (pts: [number, number][], fill: RGB) => {
+    g.fillStyle = css(fill)
+    g.beginPath()
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)))
+    g.closePath()
+    g.fill()
+  }
+  const S = 98 * sw // half shoulder width
+  const Hp = 72 * hw // half hip width
 
-  rect(cx - 72, 490, cx - 10, 690, 22, pants)
-  rect(cx + 10, 490, cx + 72, 690, 22, pants)
-  rect(cx - 86, 670, cx - 6, 715, 18, shoes)
-  rect(cx + 6, 670, cx + 86, 715, 18, shoes)
-  line(cx - 92, 320, cx - 150, 450 + arm, 38, skin)
-  line(cx + 92, 320, cx + 150, 450 - arm, 38, skin)
-  ellipse(cx - 175, 430 + arm, cx - 125, 480 + arm, skin)
-  ellipse(cx + 125, 430 - arm, cx + 175, 480 - arm, skin)
-  rect(cx - 98, 290, cx + 98, 510, 44, outfit)
-  g.fillStyle = css(outfit.map((v) => Math.max(v - 40, 0)) as RGB)
-  g.fillRect(cx - 98, 440, 196, 20)
+  // behind the body: wings, cape, tail, long hair
+  if (has('features', 'wings') || species === 'angel' || species === 'fairy') {
+    const wing: RGB = species === 'demon' ? [70, 40, 70] : [225, 228, 240]
+    ellipse(cx - S - 120, 230, cx - 20, 470, wing)
+    ellipse(cx + 20, 230, cx + S + 120, 470, wing)
+  }
+  if (has('accessories', 'cape')) poly([[cx - S, 300], [cx + S, 300], [cx + S + 40, 650], [cx - S - 40, 650]], shade(pants, -30))
+  if (has('features', 'tail') || [...BEAST, 'dragonkin', 'demon'].includes(species)) {
+    line(cx + Hp - 10, 500, cx + Hp + 90, 560, 22, species === 'dragonkin' ? shade(skin, -40) : hair)
+  }
+  if (drop > 60 && !has('hairLength', 'bald') && !has('hairStyle', 'bun') && !has('hairStyle', 'ponytail')) {
+    rect(cx - 92, 160, cx + 92, 175 + drop, 40, shade(hair, -18))
+  }
+
+  // body
+  rect(cx - Hp, 490, cx - 10, 690, 22, pants)
+  rect(cx + 10, 490, cx + Hp, 690, 22, pants)
+  rect(cx - Hp - 14, 670, cx - 6, 715, 18, shoes)
+  rect(cx + 6, 670, cx + Hp + 14, 715, 18, shoes)
+  const armW = 38 * Math.max(sw, 0.9)
+  line(cx - S + 6, 320, cx - S - 52, 450 + arm, armW, skin)
+  line(cx + S - 6, 320, cx + S + 52, 450 - arm, armW, skin)
+  const handL: [number, number] = [cx - S - 52, 455 + arm]
+  const handR: [number, number] = [cx + S + 52, 455 - arm]
+  const hand: RGB = has('accessories', 'gloves') ? shade(pants, -40) : skin
+  ellipse(handL[0] - 25, handL[1] - 25, handL[0] + 25, handL[1] + 25, hand)
+  ellipse(handR[0] - 25, handR[1] - 25, handR[0] + 25, handR[1] + 25, hand)
+  rect(cx - S, 290, cx + S, 510, 44, outfit)
+  if (ROBES.includes(pickT('outfit'))) poly([[cx - S + 10, 440], [cx + S - 10, 440], [cx + S + 30, 680], [cx - S - 30, 680]], outfit)
+  if (has('outfit', 'knight') || has('outfit', 'samurai')) rect(cx - S + 20, 310, cx + S - 20, 420, 30, [170, 176, 188])
+  g.fillStyle = css(has('accessories', 'belt') ? [90, 60, 35] : shade(outfit, -40))
+  g.fillRect(cx - S, 440, 2 * S, 20)
+
+  // held item
+  const held = pickT('held')
+  if (['sword', 'greatsword', 'dagger', 'spear'].includes(held)) {
+    const len = held === 'greatsword' ? 260 : held === 'spear' ? 330 : held === 'dagger' ? 70 : 190
+    line(handR[0], handR[1], handR[0] + 30, handR[1] - len, held === 'greatsword' ? 18 : 10, [200, 205, 215])
+  } else if (held === 'staff' || held === 'wand') {
+    const top = held === 'staff' ? 280 : 90
+    line(handR[0], handR[1] + 60, handR[0] + 10, handR[1] - top, held === 'staff' ? 12 : 6, [110, 75, 40])
+    ellipse(handR[0] - 8, handR[1] - top - 25, handR[0] + 28, handR[1] - top + 10, [120, 200, 255])
+  } else if (held === 'shield') {
+    ellipse(handL[0] - 55, handL[1] - 70, handL[0] + 45, handL[1] + 40, [150, 110, 60])
+  } else if (held === 'bow') {
+    g.strokeStyle = css([120, 80, 40])
+    g.lineWidth = 8
+    g.beginPath()
+    g.arc(handR[0] - 10, handR[1], 110, -1.2, 1.2)
+    g.stroke()
+  } else if (held === 'book') {
+    rect(handR[0] - 30, handR[1] - 40, handR[0] + 30, handR[1] + 30, 6, [100, 40, 50])
+  } else if (held === 'lantern') {
+    ellipse(handR[0] - 20, handR[1] + 10, handR[0] + 20, handR[1] + 60, [255, 210, 90])
+  }
+
+  // head
   g.fillStyle = css(skin)
   g.fillRect(cx - 20, 255, 40, 45)
-  ellipse(cx - 72, 120, cx + 72, 280, skin)
-  // hair: top half of an ellipse plus side locks
-  g.fillStyle = css(hair)
-  g.beginPath()
-  g.ellipse(cx, 175, 88, 75, 0, Math.PI, Math.PI * 2)
-  g.closePath()
-  g.fill()
-  g.fillRect(cx - 88, 175, 22, 85)
-  g.fillRect(cx + 66, 175, 22, 85)
+  const faceW = has('faceShape', 'round') ? 78 : has('faceShape', 'long') ? 64 : 72
+  ellipse(cx - faceW, 120, cx + faceW, 280, skin)
+  if (has('features', 'pointed-ears') || species === 'elf') {
+    poly([[cx - faceW + 4, 190], [cx - faceW - 38, 160], [cx - faceW + 2, 222]], skin)
+    poly([[cx + faceW - 4, 190], [cx + faceW + 38, 160], [cx + faceW - 2, 222]], skin)
+  }
+  if (!has('hairLength', 'bald')) {
+    g.fillStyle = css(hair)
+    g.beginPath()
+    g.ellipse(cx, 175, 88, has('hairLength', 'buzz') ? 62 : 75, 0, Math.PI, Math.PI * 2)
+    g.closePath()
+    g.fill()
+    if (drop >= 60) {
+      const side = Math.min(85 + drop / 3, 140)
+      g.fillRect(cx - 88, 175, 22, side)
+      g.fillRect(cx + 66, 175, 22, side)
+    }
+    if (has('hairStyle', 'bangs') || has('hairStyle', 'hime')) g.fillRect(cx - 70, 130, 140, 42)
+    if (has('hairStyle', 'mohawk')) rect(cx - 16, 60, cx + 16, 140, 14, hair)
+    if (has('hairStyle', 'bun')) ellipse(cx - 34, 70, cx + 34, 130, hair)
+    if (has('hairStyle', 'ponytail')) line(cx + 70, 140, cx + 120, 330, 34, hair)
+    if (has('hairStyle', 'twintails')) {
+      line(cx - 90, 160, cx - 140, 380, 30, hair)
+      line(cx + 90, 160, cx + 140, 380, 30, hair)
+    }
+    if (has('hairStyle', 'curly') || has('hairStyle', 'coily')) {
+      for (let i = 0; i < 9; i++) ellipse(cx - 100 + i * 22, 92 + (i % 2) * 14, cx - 64 + i * 22, 132 + (i % 2) * 14, hair)
+    }
+  }
+  if (has('features', 'animal-ears') || BEAST.includes(species)) {
+    poly([[cx - 80, 130], [cx - 60, 50], [cx - 30, 110]], hair)
+    poly([[cx + 80, 130], [cx + 60, 50], [cx + 30, 110]], hair)
+  }
+  if (has('features', 'horns') || species === 'demon' || species === 'dragonkin') {
+    poly([[cx - 50, 115], [cx - 78, 40], [cx - 30, 108]], [60, 45, 50])
+    poly([[cx + 50, 115], [cx + 78, 40], [cx + 30, 108]], [60, 45, 50])
+  }
+  if (has('features', 'halo') || species === 'angel') {
+    g.strokeStyle = 'rgb(250,210,80)'
+    g.lineWidth = 8
+    g.beginPath()
+    g.ellipse(cx, 70, 60, 16, 0, 0, Math.PI * 2)
+    g.stroke()
+  }
+  if (has('accessories', 'crown')) {
+    poly([[cx - 50, 115], [cx - 50, 80], [cx - 25, 100], [cx, 70], [cx + 25, 100], [cx + 50, 80], [cx + 50, 115]], [230, 190, 60])
+  }
+  if (has('outfit', 'wizard')) poly([[cx - 100, 125], [cx + 100, 125], [cx + 10, 10]], shade(outfit, -20))
+  else if (has('accessories', 'hat')) {
+    rect(cx - 110, 112, cx + 110, 128, 8, shade(pants, -20))
+    rect(cx - 66, 60, cx + 66, 120, 14, shade(pants, -20))
+  }
+
+  // face
+  const hetero = has('eyeColor', 'hetero')
   for (const ex of [-28, 28]) {
     ellipse(cx + ex - 11, 190, cx + ex + 11, 218, [255, 255, 255])
-    ellipse(cx + ex - 6, 196, cx + ex + 6, 214, [30, 20, 60])
+    const iris: RGB = hetero && ex > 0 ? [224, 178, 58] : has('features', 'glow-eyes') ? [120, 255, 240] : eye
+    ellipse(cx + ex - 6, 196, cx + ex + 6, 214, iris)
   }
-  g.strokeStyle = 'rgb(120,40,60)'
+  if (has('accessories', 'glasses')) {
+    g.strokeStyle = 'rgb(40,40,50)'
+    g.lineWidth = 4
+    for (const ex of [-28, 28]) {
+      g.beginPath()
+      g.arc(cx + ex, 204, 20, 0, Math.PI * 2)
+      g.stroke()
+    }
+    line(cx - 8, 204, cx + 8, 204, 4, [40, 40, 50])
+  }
+  if (has('accessories', 'eyepatch')) ellipse(cx + 12, 188, cx + 44, 220, [25, 25, 30])
+  if (has('skinDetails', 'freckles')) {
+    for (const [fx, fy] of [[-40, 228], [-30, 234], [-46, 238], [40, 228], [30, 234], [46, 238]]) {
+      ellipse(cx + fx - 2, fy - 2, cx + fx + 2, fy + 2, shade(skin, -60))
+    }
+  }
+  const beard = pickT('facialHair')
+  if (beard && beard !== 'none') {
+    const depth = beard === 'long' ? 90 : beard === 'full' ? 45 : beard === 'short' ? 25 : 10
+    if (beard === 'mustache') rect(cx - 26, 226, cx + 26, 236, 5, hair)
+    else if (beard === 'goatee') rect(cx - 14, 252, cx + 14, 262 + depth, 8, hair)
+    else if (beard === 'stubble') ellipse(cx - 56, 222, cx + 56, 286, shade(skin, -35))
+    else poly([[cx - 66, 215], [cx + 66, 215], [cx + 40, 270 + depth], [cx, 285 + depth], [cx - 40, 270 + depth]], hair)
+  }
+  const expr = pickT('expression')
+  g.strokeStyle = has('makeup', 'lipstick') ? 'rgb(200,20,40)' : 'rgb(120,40,60)'
   g.lineWidth = 4
   g.beginPath()
-  g.ellipse(cx, 238, 22, 18, 0, (20 * Math.PI) / 180, (160 * Math.PI) / 180)
+  if (expr === 'serious' || expr === 'angry') {
+    g.moveTo(cx - 16, 246)
+    g.lineTo(cx + 16, 246)
+  } else if (expr === 'sad') {
+    g.moveTo(cx - 16, 248)
+    g.quadraticCurveTo(cx, 236, cx + 16, 248)
+  } else if (expr === 'smirk') {
+    g.moveTo(cx - 16, 246)
+    g.quadraticCurveTo(cx + 6, 250, cx + 20, 238)
+  } else {
+    g.ellipse(cx, 238, 22, 18, 0, (20 * Math.PI) / 180, (160 * Math.PI) / 180)
+  }
   g.stroke()
+  if (expr === 'angry') {
+    line(cx - 42, 182, cx - 16, 190, 5, shade(hair, -20))
+    line(cx + 42, 182, cx + 16, 190, 5, shade(hair, -20))
+  }
+  g.restore()
+
   g.fillStyle = 'rgb(190,190,205)'
   g.font = '11px sans-serif'
   g.fillText('PREVIEW ART', 14, H - 12)

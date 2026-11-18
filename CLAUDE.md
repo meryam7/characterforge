@@ -31,6 +31,7 @@ drawing, region selection, compositing, background removal, zips. `server/` (Hon
 | PBKDF2 passwords, password policy | `server/security.ts` |
 | Email codes (verification, password reset), Gmail SMTP (`smtp.ts`) / Resend / Brevo delivery | `server/email.ts` (setup: `docs/EMAIL.md`) |
 | Workers AI models, prompt building, `STYLES`, `NEGATIVE` | `server/ai.ts` |
+| Character builder trait catalogue (shared by server + browser) | `frontend/src/lib/traits.ts` |
 | Routes | `server/routes/{auth,characters,history,gallery,ai,files,admin}.ts` |
 | DB schema | `migrations/*.sql` (D1) |
 | Pages config: production + staging (preview) bindings, vars | `wrangler.toml` |

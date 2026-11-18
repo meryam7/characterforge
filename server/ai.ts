@@ -3,6 +3,8 @@
  * - inpainting:    runwayml SD 1.5 inpainting (beta, free). Also used with a full-white mask as "img2img"
  *   for identity lock, because img2img via dreamshaper returns a black image on Workers AI.
  * Output conventions match the browser engine (frontend/src/lib/engine): 512x768, plain light background. */
+import { traitsPrompt, type Traits } from '../frontend/src/lib/traits'
+export type { Traits }
 import type { Env } from './env'
 
 export const W = 512
@@ -25,13 +27,16 @@ export const STYLES: Record<string, string> = {
   'realistic concept art': 'realistic character concept art, highly detailed, studio lighting',
 }
 
-export function buildPrompt(description: string, style: string, extra = ''): string {
-  return [
-    description.trim(),
-    extra.trim(),
-    STYLES[style] ?? style,
-    'full body character design, single character, centered, plain white background',
-  ]
+/** Order matters: SD 1.5 reads only the first ~75 tokens, so identity (builder traits) comes first and secondary
+ * trait details last. */
+export function buildPrompt(description: string, style: string, extra = '', traits?: Traits | null): string {
+  const t = traitsPrompt(traits)
+  const look = STYLES[style] ?? style
+  const frame = 'full body character design, single character, centered, plain white background'
+  // builder characters: style + framing right after the traits so they survive truncation; free text after
+  return (t.main
+    ? [t.main, extra.trim(), look, 'full body, single character, plain white background', description.trim(), t.details]
+    : [description.trim(), extra.trim(), look, frame])
     .filter(Boolean)
     .join(', ')
 }

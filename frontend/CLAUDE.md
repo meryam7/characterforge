@@ -29,7 +29,9 @@ deployed as static assets on Cloudflare Pages). Never open `node_modules/`, `pac
 | `components/ShareView.tsx` | `/d/<id>` page (App reads `location.pathname`). Works logged out. |
 | `components/LegalView.tsx` | Privacy / Terms / Content Policy (`#/privacy` `#/terms` `#/content-policy`), `LegalLinks`, `CookieNotice`. |
 | `lib/i18n.tsx` · `lib/i18n.fr.ts` · `lib/legal.ts` | `useI18n()` → `t()`, `LanguageSwitch`; French strings; legal texts EN/FR. |
-| `components/{Landing,Sidebar,HistoryView,Gallery,CharacterModal,ConfirmButton}.tsx` | Screens and widgets. |
+| `components/CharacterModal.tsx` | Character builder: Basics + 7 trait steps (chips, colour swatches), live preview canvas, Surprise me. |
+| `lib/traits.ts` | Trait catalogue (29 groups, EN/FR labels, prompt words, swatch hex), `cleanTraits`, `traitsPrompt`, `traitsSummary`, `randomTraits`. **Also imported by the server.** Never rename an option id (stored in DB). |
+| `components/{Landing,Sidebar,HistoryView,Gallery,ConfirmButton}.tsx` | Screens and widgets. |
 
 ## Conventions
 - Pixel work only in `lib/engine`. Components call engine functions inside `run()`.

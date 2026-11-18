@@ -1,5 +1,6 @@
 /** API client. Authentication uses an HttpOnly session cookie that JavaScript can't read (safe from XSS token theft).
  * Every state-changing request sends the CSRF token (double-submit cookie __Host-csrf → X-CSRF-Token header). */
+import type { Traits } from './traits'
 import type {
   AiStatus, Character, Design, GalleryPage, GallerySort, HistoryPage, LoginResult, MfaSetup, PublicDesign, ReportItem, ReportReason,
   SecurityEventsPage, SecuritySummary, User,
@@ -76,6 +77,8 @@ async function image(path: string, body: unknown) {
   return { blob: await res.blob(), remaining: left === null ? null : Number(left) }
 }
 
+export type NewCharacter = { name: string; description: string; style: string; traits?: Traits | null; seed?: number }
+
 export const api = {
   // auth + account
   register: (email: string, password: string, display_name: string, accept_terms: boolean, lang: string) =>
@@ -102,7 +105,7 @@ export const api = {
 
   // characters + designs (images are produced in the browser, see lib/engine)
   listCharacters: () => json<Character[]>('/api/characters'),
-  createCharacter: (data: { name: string; description: string; style: string }) => json<Character>('/api/characters', post(data)),
+  createCharacter: (data: NewCharacter) => json<Character>('/api/characters', post(data)),
   deleteCharacter: (id: number) => json<{ ok: boolean }>(`/api/characters/${id}`, { method: 'DELETE' }),
   uploadReference: (id: number, form: FormData) => json<Character>(`/api/characters/${id}/reference`, { method: 'POST', body: form }),
   listDesigns: (id: number) => json<Design[]>(`/api/characters/${id}/designs`),

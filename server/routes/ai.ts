@@ -14,6 +14,7 @@ r.use('*', requireUser)
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/ // checked on the whole string
 const MAX_B64 = 2_000_000
 
+const parseTraits = (raw: string | null | undefined) => (raw ? (JSON.parse(raw) as ai.Traits) : null)
 const enabled = (env: Env) => env.AI_ENABLED !== 'false' && !!env.AI
 const dailyLimit = (env: Env) => Number(env.AI_DAILY_LIMIT || '40')
 
@@ -66,7 +67,7 @@ r.post('/generate', async (c) => {
   if (anchor && (anchor.length > MAX_B64 || !B64.test(anchor))) fail(422, 'anchor_b64: invalid image')
   await guard(c, uid)
   try {
-    const out = await ai.generate(c.env, ai.buildPrompt(ch.description || ch.name, ch.style, extra), ch.seed, anchor)
+    const out = await ai.generate(c.env, ai.buildPrompt(ch.description || (ch.traits ? '' : ch.name), ch.style, extra, parseTraits(ch.traits)), ch.seed, anchor)
     return finish(c.env, uid, out)
   } catch (err) {
     return aiFailed(err)
@@ -87,8 +88,8 @@ r.post('/inpaint', async (c) => {
   }
   await guard(c, uid)
   try {
-    const desc = character.description || character.name
-    const out = await ai.inpaint(c.env, ai.buildPrompt(desc, character.style, prompt), character.seed, image, mask as number[])
+    const desc = character.description || (character.traits ? '' : character.name)
+    const out = await ai.inpaint(c.env, ai.buildPrompt(desc, character.style, prompt, parseTraits(character.traits)), character.seed, image, mask as number[])
     return finish(c.env, uid, out)
   } catch (err) {
     return aiFailed(err)

@@ -26,10 +26,10 @@ export async function renderDesign(
       return { canvas: normalize(await loadImage(res.blob)), source: 'ai', notice: null, remaining: res.remaining }
     } catch (e) {
       if (!isFallback(e)) throw e
-      return { canvas: mockCharacter(prompt, character.seed), source: 'mock', notice: (e as Error).message, remaining: null }
+      return { canvas: mockCharacter(prompt, character.seed, character.traits), source: 'mock', notice: (e as Error).message, remaining: null }
     }
   }
-  return { canvas: mockCharacter(prompt, character.seed), source: 'mock', notice: null, remaining: null }
+  return { canvas: mockCharacter(prompt, character.seed, character.traits), source: 'mock', notice: null, remaining: null }
 }
 
 export async function renderEdit(

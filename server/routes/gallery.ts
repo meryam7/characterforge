@@ -11,10 +11,10 @@ import { logEvent } from '../security-log'
 export const REPORT_REASONS = ['nsfw', 'violence', 'hate', 'copyright', 'spam', 'other'] as const
 const AUTO_ALERT_REPORTS = 3 // open reports on one design that raise a moderation alert
 
-type PublicRow = DesignRow & { character_name: string; style: string; author: string; liked: number | null }
+type PublicRow = DesignRow & { character_name: string; character_traits: string | null; style: string; author: string; liked: number | null }
 
 const PUBLIC_SELECT = `SELECT d.id, d.image_key, d.prompt, d.kind, d.source, d.published_at, d.created_at, d.like_count,
-   ch.name AS character_name, ch.style, u.display_name AS author,
+   ch.name AS character_name, ch.traits AS character_traits, ch.style, u.display_name AS author,
    (SELECT 1 FROM likes l WHERE l.design_id = d.id AND l.user_id = ?) AS liked
  FROM designs d JOIN characters ch ON ch.id = d.character_id JOIN users u ON u.id = ch.user_id`
 
@@ -107,8 +107,8 @@ gallery.post('/:id{[0-9]+}/remix', requireUser, async (c) => {
   // copy the image bytes inside D1 (no Worker CPU), then create the character pointing at the copy
   const [, created] = await db.batch([
     db.prepare('INSERT INTO files (key, user_id, content_type, data) SELECT ?, ?, content_type, data FROM files WHERE key = ?').bind(refKey, uid, d.image_key),
-    db.prepare('INSERT INTO characters (user_id, name, description, style, seed, reference_key, remixed_from) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *')
-      .bind(uid, name, description, d.style, seed, refKey, d.id),
+    db.prepare('INSERT INTO characters (user_id, name, description, style, seed, reference_key, remixed_from, traits) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *')
+      .bind(uid, name, description, d.style, seed, refKey, d.id, d.character_traits),
   ])
   const ch = created.results[0] as CharacterRow
   await recordActivity(db, uid, 'created', ch, { detail: `started from a community design by ${d.author}`.slice(0, 200) }).run()

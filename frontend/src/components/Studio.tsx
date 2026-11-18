@@ -1,7 +1,8 @@
 import { Loader2, Sparkles } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Run } from '../App'
-import { api, fileUrl, shareUrl } from '../lib/api'
+import { traitsSummary } from '../lib/traits'
+import { api, fileUrl, shareUrl, type NewCharacter } from '../lib/api'
 import { anchorFor, renderDesign, renderEdit, saveDesign, saveReference, type Rendered } from '../lib/engine'
 import { designCanvas, godotZip, saveBlob, spriteSheetZip, transparentPng } from '../lib/engine/exporting'
 import { ctx2d, toBlob } from '../lib/engine/image'
@@ -27,7 +28,7 @@ type Props = {
 }
 
 export default function Studio({ characters, charId, setCharId, refresh, run, newCharacterSignal, consumeNewCharacter }: Props) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [designs, setDesigns] = useState<Design[]>([])
   const [designId, setDesignId] = useState<number | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -92,7 +93,7 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
     setDesignId(id)
   }
 
-  const handleCreate = (data: { name: string; description: string; style: string }, file: File | null) => {
+  const handleCreate = (data: NewCharacter, file: File | null) => {
     setShowModal(false)
     run(t('Creating character'), async () => {
       let ch = await api.createCharacter(data)
@@ -205,6 +206,13 @@ export default function Studio({ characters, charId, setCharId, refresh, run, ne
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-display text-xl font-bold">{character.name}</h2>
           <p className="truncate text-sm text-violet-300/70">{character.style}{character.description && ` · ${character.description}`}</p>
+          {character.traits && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {traitsSummary(character.traits, lang, 10).map((x) => (
+                <span key={x} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] text-violet-200">{x}</span>
+              ))}
+            </div>
+          )}
         </div>
         <span className="chip" title={t('Real images come from Cloudflare Workers AI; when the daily allowance is used up, procedural preview art is used')}>
           {ai?.enabled ? (useAi ? t('AI · {n} left today', { n: ai.remaining }) : t('AI limit reached · preview art')) : t('Preview art mode')}
