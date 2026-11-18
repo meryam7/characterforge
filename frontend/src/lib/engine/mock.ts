@@ -13,7 +13,12 @@ const shade = (c: RGB, d: number): RGB => c.map((v) => Math.max(0, Math.min(255,
 const BUILD: Record<string, [number, number]> = { // [shoulders, hips] width factors
   slim: [0.85, 0.85], slender: [0.88, 0.86], average: [1, 1], athletic: [1.08, 0.98], muscular: [1.2, 1.05],
   curvy: [0.98, 1.18], stocky: [1.15, 1.12], plus: [1.28, 1.3], lanky: [0.8, 0.8],
+  petite: [0.82, 0.84], toned: [1.04, 0.98], hourglass: [1.02, 1.2], pear: [0.9, 1.24], vshape: [1.25, 0.9],
+  rectangle: [1, 0.97], chubby: [1.16, 1.2], heavyset: [1.3, 1.25], bodybuilder: [1.38, 1.08], willowy: [0.8, 0.84],
+  gaunt: [0.78, 0.76], round: [1.22, 1.32],
 }
+const SHOULDERS: Record<string, number> = { narrow: 0.9, sloped: 0.94, broad: 1.12, verybroad: 1.24 }
+const FACE_W: Record<string, number> = { round: 78, babyface: 80, soft: 76, long: 64, rectangle: 66, gaunt: 62, chiseled: 70, triangle: 74 }
 const HEIGHT: Record<string, number> = { tiny: 0.8, short: 0.9, average: 1, tall: 1.04, towering: 1.08 }
 const HAIR_DROP: Record<string, number> = { bald: 0, buzz: 0, short: 60, chin: 100, shoulder: 150, long: 270, verylong: 380 }
 const ROBES = ['gown', 'mage', 'wizard', 'priest', 'kimono']
@@ -34,7 +39,8 @@ export function mockCharacter(prompt: string, seed: number, traits?: Traits | nu
   const pants = hexRgb(traitHex(traits, 'accentColor')) ?? seeded.pants
   const shoes: RGB = has('footwear', 'barefoot') ? skin : has('footwear', 'greaves') ? [150, 155, 165] : seeded.shoes
   const eye = hexRgb(traitHex(traits, 'eyeColor')) ?? ([30, 20, 60] as RGB)
-  const [sw, hw] = BUILD[pickT('build')] ?? [1, 1]
+  const [bw, hw] = BUILD[pickT('build')] ?? [1, 1]
+  const sw = bw * (SHOULDERS[pickT('shoulders')] ?? 1)
   const height = (HEIGHT[pickT('height')] ?? 1) * (has('age', 'child') ? 0.8 : 1)
   const drop = HAIR_DROP[pickT('hairLength')] ?? 60
   const species = pickT('species')
@@ -139,8 +145,32 @@ export function mockCharacter(prompt: string, seed: number, traits?: Traits | nu
   // head
   g.fillStyle = css(skin)
   g.fillRect(cx - 20, 255, 40, 45)
-  const faceW = has('faceShape', 'round') ? 78 : has('faceShape', 'long') ? 64 : 72
+  const faceW = FACE_W[pickT('faceShape')] ?? 72
+  const ears = pickT('ears')
+  if (ears && ears !== 'pointed' && ears !== 'longelf') {
+    const ew = ears === 'small' ? 10 : ears === 'protruding' ? 24 : ears === 'large' ? 20 : 14
+    ellipse(cx - faceW - ew, 180, cx - faceW + 10, 230, shade(skin, -12))
+    ellipse(cx + faceW - 10, 180, cx + faceW + ew, 230, shade(skin, -12))
+  }
   ellipse(cx - faceW, 120, cx + faceW, 280, skin)
+  const jaw = pickT('jaw')
+  if (['strong', 'wide'].includes(jaw) || ['square', 'rectangle', 'triangle'].includes(pickT('faceShape'))) {
+    rect(cx - faceW + 6, 205, cx + faceW - 6, 278, 26, skin) // squarer jaw
+  } else if (jaw === 'pointed' || pickT('faceShape') === 'heart') {
+    poly([[cx - faceW + 14, 240], [cx + faceW - 14, 240], [cx, 296]], skin)
+  } else if (jaw === 'prominent') ellipse(cx - 26, 262, cx + 26, 290, skin)
+  if (jaw === 'cleft') line(cx, 270, cx, 280, 2, shade(skin, -45))
+  if (pickT('cheeks') === 'rosy' || has('makeup', 'blush')) {
+    for (const ex of [-44, 44]) ellipse(cx + ex - 14, 224, cx + ex + 14, 240, [240, 140, 150])
+  }
+  if (pickT('cheeks') === 'hollow' || pickT('faceShape') === 'gaunt') {
+    for (const ex of [-46, 46]) line(cx + ex, 222, cx + ex * 0.85, 250, 3, shade(skin, -30))
+  }
+  if (has('ears', 'longelf') || has('ears', 'pointed')) {
+    const tip = has('ears', 'longelf') ? 70 : 24
+    poly([[cx - faceW + 4, 190], [cx - faceW - tip, 160], [cx - faceW + 2, 222]], skin)
+    poly([[cx + faceW - 4, 190], [cx + faceW + tip, 160], [cx + faceW - 2, 222]], skin)
+  }
   if (has('features', 'pointed-ears') || species === 'elf') {
     poly([[cx - faceW + 4, 190], [cx - faceW - 38, 160], [cx - faceW + 2, 222]], skin)
     poly([[cx + faceW - 4, 190], [cx + faceW + 38, 160], [cx + faceW - 2, 222]], skin)
@@ -198,6 +228,35 @@ export function mockCharacter(prompt: string, seed: number, traits?: Traits | nu
     ellipse(cx + ex - 11, 190, cx + ex + 11, 218, [255, 255, 255])
     const iris: RGB = hetero && ex > 0 ? [224, 178, 58] : has('features', 'glow-eyes') ? [120, 255, 240] : eye
     ellipse(cx + ex - 6, 196, cx + ex + 6, 214, iris)
+    const lashes = pickT('eyelashes')
+    if (lashes === 'long' || lashes === 'dramatic' || has('makeup', 'eyeliner')) {
+      const w = lashes === 'dramatic' || has('makeup', 'eyeliner') ? 4 : 2
+      line(cx + ex - 13, 192, cx + ex + 13, 190, w, [25, 20, 30])
+      line(cx + ex + (ex > 0 ? 11 : -11), 191, cx + ex + (ex > 0 ? 18 : -18), 184, w, [25, 20, 30])
+    }
+    if (has('eyeShape', 'sleepy')) rect(cx + ex - 12, 188, cx + ex + 12, 201, 4, skin) // half-closed lid
+  }
+  if (has('faceDetails', 'scareye')) line(cx + 22, 176, cx + 40, 228, 3, [170, 70, 70])
+  if (has('faceDetails', 'scarcheek')) line(cx - 58, 226, cx - 30, 238, 3, [170, 70, 70])
+  if (has('faceDetails', 'mole')) ellipse(cx + 34, 224, cx + 39, 229, shade(skin, -90))
+  if (has('faceDetails', 'nosering')) {
+    g.strokeStyle = 'rgb(210,180,80)'
+    g.lineWidth = 2
+    g.beginPath()
+    g.arc(cx + 9, 228, 5, 0, Math.PI * 2)
+    g.stroke()
+  }
+  if (has('faceDetails', 'bindi')) ellipse(cx - 4, 172, cx + 4, 180, [200, 30, 50])
+  if (has('faceDetails', 'wrinkles')) {
+    for (const ex of [-46, 46]) line(cx + ex, 200, cx + ex + (ex > 0 ? 8 : -8), 206, 2, shade(skin, -40))
+  }
+  const brows = pickT('eyebrows')
+  if (brows === 'thick' || brows === 'bushy' || brows === 'unibrow' || brows === 'furrowed') {
+    const w = brows === 'bushy' ? 8 : 6
+    const tilt = brows === 'furrowed' ? 6 : 0
+    line(cx - 42, 180, cx - 14, 180 + tilt, w, shade(hair, -20))
+    line(cx + 42, 180, cx + 14, 180 + tilt, w, shade(hair, -20))
+    if (brows === 'unibrow') line(cx - 14, 180, cx + 14, 180, w, shade(hair, -20))
   }
   if (has('accessories', 'glasses')) {
     g.strokeStyle = 'rgb(40,40,50)'
@@ -224,16 +283,21 @@ export function mockCharacter(prompt: string, seed: number, traits?: Traits | nu
     else poly([[cx - 66, 215], [cx + 66, 215], [cx + 40, 270 + depth], [cx, 285 + depth], [cx - 40, 270 + depth]], hair)
   }
   const expr = pickT('expression')
-  g.strokeStyle = has('makeup', 'lipstick') ? 'rgb(200,20,40)' : 'rgb(120,40,60)'
+  g.strokeStyle = has('makeup', 'lipstick') ? 'rgb(200,20,40)' : has('makeup', 'dark') ? 'rgb(60,20,40)' : 'rgb(120,40,60)'
   g.lineWidth = 4
   g.beginPath()
-  if (expr === 'serious' || expr === 'angry') {
+  if (expr === 'surprised') {
+    g.ellipse(cx, 244, 9, 12, 0, 0, Math.PI * 2)
+  } else if (expr === 'laughing' || expr === 'crazed') {
+    g.ellipse(cx, 236, expr === 'crazed' ? 28 : 22, 20, 0, 0, Math.PI)
+    g.closePath()
+  } else if (expr === 'serious' || expr === 'angry' || expr === 'determined' || expr === 'sleepy' || expr === 'calm') {
     g.moveTo(cx - 16, 246)
     g.lineTo(cx + 16, 246)
-  } else if (expr === 'sad') {
+  } else if (expr === 'sad' || expr === 'worried') {
     g.moveTo(cx - 16, 248)
     g.quadraticCurveTo(cx, 236, cx + 16, 248)
-  } else if (expr === 'smirk') {
+  } else if (expr === 'smirk' || expr === 'smug') {
     g.moveTo(cx - 16, 246)
     g.quadraticCurveTo(cx + 6, 250, cx + 20, 238)
   } else {

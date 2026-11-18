@@ -111,7 +111,52 @@ export const GROUPS: Group[] = [
     ['stocky', 'Stocky', 'Trapu', 'stocky build'],
     ['plus', 'Plus-size', 'Grande taille', 'plus-size build'],
     ['lanky', 'Lanky', 'Dégingandé', 'lanky build'],
+    ['petite', 'Petite', 'Menu', 'petite build'],
+    ['toned', 'Toned', 'Tonique', 'toned fit build'],
+    ['hourglass', 'Hourglass', 'Sablier', 'hourglass figure'],
+    ['pear', 'Pear-shaped', 'En poire', 'pear-shaped figure with wide hips'],
+    ['vshape', 'V-shaped', 'En V', 'broad shoulders and narrow waist'],
+    ['rectangle', 'Straight', 'Droite', 'straight figure'],
+    ['chubby', 'Chubby', 'Potelé', 'chubby build'],
+    ['heavyset', 'Heavyset', 'Corpulent', 'heavyset build'],
+    ['bodybuilder', 'Bodybuilder', 'Culturiste', 'huge bodybuilder physique'],
+    ['willowy', 'Willowy', 'Gracile', 'willowy delicate build'],
+    ['gaunt', 'Gaunt', 'Émacié', 'gaunt bony build'],
+    ['round', 'Round', 'Rond', 'round soft body'],
   ]),
+  group('shoulders', 'body', 'Shoulders', 'Épaules', 'single', [
+    ['narrow', 'Narrow', 'Étroites', 'narrow shoulders'],
+    ['sloped', 'Sloping', 'Tombantes', 'sloping shoulders'],
+    ['broad', 'Broad', 'Larges', 'broad shoulders'],
+    ['verybroad', 'Very broad', 'Très larges', 'very broad shoulders'],
+  ]),
+  group('proportions', 'body', 'Proportions', 'Proportions', 'single', [
+    ['realistic', 'Realistic', 'Réalistes', 'realistic proportions'],
+    ['heroic', 'Heroic (long legs)', 'Héroïques (longues jambes)', 'heroic proportions'],
+    ['stylized', 'Stylized', 'Stylisées', 'stylized proportions'],
+    ['chibi', 'Chibi (big head)', 'Chibi (grosse tête)', 'chibi, big head, small body'],
+  ]),
+  group('posture', 'body', 'Posture', 'Maintien', 'single', [
+    ['upright', 'Upright', 'Droit', 'upright posture'],
+    ['proud', 'Proud', 'Fier', 'proud posture, chest out'],
+    ['graceful', 'Graceful', 'Gracieux', 'graceful posture'],
+    ['slouched', 'Slouched', 'Avachi', 'slouching'],
+    ['hunched', 'Hunched', 'Voûté', 'hunched posture'],
+  ]),
+  group('bodyDetails', 'body', 'Body details', 'Détails du corps', 'multi', [
+    ['longlegs', 'Long legs', 'Longues jambes', 'long legs'],
+    ['shortlegs', 'Short legs', 'Jambes courtes', 'short legs'],
+    ['widehips', 'Wide hips', 'Hanches larges', 'wide hips'],
+    ['broadchest', 'Broad chest', 'Torse large', 'broad chest'],
+    ['abs', 'Defined abs', 'Abdos dessinés', 'defined abs'],
+    ['strongarms', 'Strong arms', 'Bras puissants', 'strong arms'],
+    ['longneck', 'Long neck', 'Long cou', 'long neck'],
+    ['belly', 'Big belly', 'Gros ventre', 'big belly'],
+    ['prosthetic-arm', 'Prosthetic arm', 'Prothèse de bras', 'prosthetic arm'],
+    ['prosthetic-leg', 'Prosthetic leg', 'Prothèse de jambe', 'prosthetic leg'],
+    ['wheelchair', 'Wheelchair user', 'En fauteuil roulant', 'sitting in a wheelchair'],
+    ['cane', 'Walking cane', 'Canne', 'walking with a cane'],
+  ], 4),
   group('pose', 'body', 'Pose', 'Pose', 'single', [
     ['standing', 'Standing', 'Debout', 'standing pose'],
     ['heroic', 'Heroic', 'Héroïque', 'heroic pose'],
@@ -160,6 +205,29 @@ export const GROUPS: Group[] = [
     ['long', 'Long', 'Allongé', 'long face'],
     ['diamond', 'Diamond', 'Diamant', 'high cheekbones'],
     ['angular', 'Angular', 'Anguleux', 'sharp angular features'],
+    ['triangle', 'Triangle', 'Triangulaire', 'triangular face with a wide jaw'],
+    ['rectangle', 'Rectangle', 'Rectangulaire', 'rectangular face'],
+    ['babyface', 'Baby face', 'Visage poupon', 'soft baby face'],
+    ['chiseled', 'Chiseled', 'Ciselé', 'chiseled features'],
+    ['gaunt', 'Gaunt', 'Émacié', 'gaunt face'],
+    ['soft', 'Soft', 'Doux', 'soft rounded features'],
+  ]),
+  group('jaw', 'face', 'Jaw & chin', 'Mâchoire et menton', 'single', [
+    ['soft', 'Soft jaw', 'Mâchoire douce', 'soft jawline'],
+    ['defined', 'Defined jaw', 'Mâchoire dessinée', 'defined jawline'],
+    ['strong', 'Strong square jaw', 'Mâchoire carrée', 'strong square jaw'],
+    ['wide', 'Wide jaw', 'Mâchoire large', 'wide jaw'],
+    ['pointed', 'Pointed chin', 'Menton pointu', 'pointed chin'],
+    ['cleft', 'Cleft chin', 'Menton fendu', 'cleft chin'],
+    ['receding', 'Small chin', 'Petit menton', 'small receding chin'],
+    ['prominent', 'Prominent chin', 'Menton saillant', 'prominent chin'],
+  ]),
+  group('cheeks', 'face', 'Cheeks', 'Joues', 'single', [
+    ['high', 'High cheekbones', 'Pommettes hautes', 'high cheekbones'],
+    ['full', 'Full cheeks', 'Joues rondes', 'full round cheeks'],
+    ['hollow', 'Hollow cheeks', 'Joues creuses', 'hollow cheeks'],
+    ['dimples', 'Dimples', 'Fossettes', 'dimples'],
+    ['rosy', 'Rosy cheeks', 'Joues rosées', 'rosy cheeks'],
   ]),
   group('eyeColor', 'face', 'Eye colour', 'Couleur des yeux', 'color', [
     ['brown', 'Brown', 'Marron', 'brown', '#5b3a1e'],
@@ -182,6 +250,18 @@ export const GROUPS: Group[] = [
     ['upturned', 'Upturned', 'En amande relevée', 'upturned'],
     ['downturned', 'Downturned', 'Tombants', 'downturned'],
     ['sharp', 'Sharp', 'Perçants', 'sharp narrow'],
+    ['cat', 'Cat-like', 'Félins', 'cat-like'],
+    ['deepset', 'Deep-set', 'Enfoncés', 'deep-set'],
+    ['wideset', 'Wide-set', 'Écartés', 'wide-set'],
+    ['closeset', 'Close-set', 'Rapprochés', 'close-set'],
+    ['sleepy', 'Half-lidded', 'Mi-clos', 'sleepy half-lidded'],
+    ['big', 'Big & expressive', 'Grands et expressifs', 'big expressive'],
+  ]),
+  group('eyelashes', 'face', 'Eyelashes', 'Cils', 'single', [
+    ['short', 'Short', 'Courts', 'short eyelashes'],
+    ['natural', 'Natural', 'Naturels', 'natural eyelashes'],
+    ['long', 'Long', 'Longs', 'long eyelashes'],
+    ['dramatic', 'Dramatic', 'Spectaculaires', 'thick dramatic eyelashes'],
   ]),
   group('eyebrows', 'face', 'Eyebrows', 'Sourcils', 'single', [
     ['thin', 'Thin', 'Fins', 'thin eyebrows'],
@@ -189,6 +269,11 @@ export const GROUPS: Group[] = [
     ['arched', 'Arched', 'Arqués', 'arched eyebrows'],
     ['straight', 'Straight', 'Droits', 'straight eyebrows'],
     ['bushy', 'Bushy', 'Broussailleux', 'bushy eyebrows'],
+    ['unibrow', 'Unibrow', 'Monosourcil', 'unibrow'],
+    ['slit', 'Split brow', 'Sourcil fendu', 'eyebrow slit'],
+    ['furrowed', 'Furrowed', 'Froncés', 'furrowed eyebrows'],
+    ['faint', 'Faint', 'Clairsemés', 'faint sparse eyebrows'],
+    ['angled', 'Angled', 'Anguleux', 'sharp angled eyebrows'],
   ]),
   group('nose', 'face', 'Nose', 'Nez', 'single', [
     ['small', 'Small', 'Petit', 'small nose'],
@@ -197,12 +282,31 @@ export const GROUPS: Group[] = [
     ['aquiline', 'Aquiline', 'Aquilin', 'aquiline nose'],
     ['wide', 'Wide', 'Large', 'wide nose'],
     ['pointed', 'Pointed', 'Pointu', 'pointed nose'],
+    ['hooked', 'Hooked', 'Crochu', 'hooked nose'],
+    ['crooked', 'Crooked', 'Tordu', 'crooked broken nose'],
+    ['snub', 'Snub', 'Retroussé', 'snub nose'],
+    ['roman', 'Roman', 'Romain', 'roman nose'],
+    ['flat', 'Flat', 'Épaté', 'flat broad nose'],
+    ['long', 'Long', 'Long', 'long nose'],
+    ['upturned', 'Upturned', 'Relevé', 'upturned nose'],
   ]),
   group('lips', 'face', 'Lips', 'Lèvres', 'single', [
     ['thin', 'Thin', 'Fines', 'thin lips'],
     ['full', 'Full', 'Pulpeuses', 'full lips'],
     ['heart', 'Heart-shaped', 'En cœur', 'heart-shaped lips'],
     ['wide', 'Wide', 'Larges', 'wide mouth'],
+    ['small', 'Small', 'Petites', 'small lips'],
+    ['bow', "Cupid's bow", 'Arc de Cupidon', "cupid's bow lips"],
+    ['pouty', 'Pouty', 'Boudeuses', 'pouty lips'],
+    ['downturned', 'Downturned', 'Tombantes', 'downturned lips'],
+  ]),
+  group('ears', 'face', 'Ears', 'Oreilles', 'single', [
+    ['small', 'Small', 'Petites', 'small ears'],
+    ['large', 'Large', 'Grandes', 'large ears'],
+    ['protruding', 'Protruding', 'Décollées', 'protruding ears'],
+    ['pointed', 'Slightly pointed', 'Légèrement pointues', 'slightly pointed ears'],
+    ['longelf', 'Long elf ears', "Longues oreilles d'elfe", 'long elf ears'],
+    ['gauged', 'Stretched lobes', 'Lobes étirés', 'stretched earlobes'],
   ]),
   group('facialHair', 'face', 'Facial hair', 'Pilosité faciale', 'single', [
     ['none', 'None', 'Aucune', 'clean-shaven'],
@@ -212,6 +316,11 @@ export const GROUPS: Group[] = [
     ['short', 'Short beard', 'Barbe courte', 'short beard'],
     ['full', 'Full beard', 'Barbe fournie', 'full beard'],
     ['long', 'Long beard', 'Longue barbe', 'long flowing beard'],
+    ['sideburns', 'Sideburns', 'Favoris', 'long sideburns'],
+    ['muttonchops', 'Mutton chops', 'Rouflaquettes', 'mutton chops'],
+    ['handlebar', 'Handlebar mustache', 'Moustache en guidon', 'handlebar mustache'],
+    ['chinstrap', 'Chinstrap', 'Collier de barbe', 'chinstrap beard'],
+    ['braided', 'Braided beard', 'Barbe tressée', 'braided beard'],
   ]),
   group('expression', 'face', 'Expression', 'Expression', 'single', [
     ['smile', 'Smiling', 'Souriant', 'warm smile'],
@@ -223,6 +332,14 @@ export const GROUPS: Group[] = [
     ['mischief', 'Mischievous', 'Malicieux', 'mischievous grin'],
     ['sad', 'Melancholic', 'Mélancolique', 'melancholic expression'],
     ['angry', 'Angry', 'En colère', 'angry expression'],
+    ['surprised', 'Surprised', 'Surpris', 'surprised expression'],
+    ['determined', 'Determined', 'Déterminé', 'determined expression'],
+    ['laughing', 'Laughing', 'Rieur', 'laughing'],
+    ['smug', 'Smug', 'Suffisant', 'smug expression'],
+    ['worried', 'Worried', 'Inquiet', 'worried expression'],
+    ['sleepy', 'Sleepy', 'Endormi', 'sleepy expression'],
+    ['crazed', 'Wild grin', 'Sourire fou', 'wild crazed grin'],
+    ['calm', 'Calm', 'Serein', 'calm serene expression'],
   ]),
   group('makeup', 'face', 'Make-up', 'Maquillage', 'single', [
     ['none', 'None', 'Aucun', ''],
@@ -231,7 +348,27 @@ export const GROUPS: Group[] = [
     ['lipstick', 'Red lipstick', 'Rouge à lèvres', 'red lipstick'],
     ['gothic', 'Gothic', 'Gothique', 'dark gothic makeup'],
     ['glitter', 'Glitter', 'Paillettes', 'sparkling glitter makeup'],
+    ['smokey', 'Smokey eyes', 'Smoky eyes', 'smokey eye makeup'],
+    ['blush', 'Soft blush', 'Blush léger', 'soft blush'],
+    ['pastel', 'Pastel eyeshadow', 'Fard pastel', 'pastel eyeshadow'],
+    ['dark', 'Dark lipstick', 'Rouge à lèvres sombre', 'dark lipstick'],
+    ['gems', 'Face gems', 'Strass sur le visage', 'face gems'],
   ]),
+  group('faceDetails', 'face', 'Face details', 'Détails du visage', 'multi', [
+    ['wrinkles', 'Wrinkles', 'Rides', 'wrinkles and laugh lines'],
+    ['eyebags', 'Tired eye bags', 'Cernes', 'tired eye bags'],
+    ['scareye', 'Scar over an eye', "Cicatrice sur l'œil", 'scar over one eye'],
+    ['scarcheek', 'Cheek scar', 'Cicatrice à la joue', 'scar across the cheek'],
+    ['mole', 'Mole under the eye', "Grain de beauté sous l'œil", 'beauty mark under the eye'],
+    ['nosering', 'Nose ring', 'Anneau de nez', 'nose ring'],
+    ['septum', 'Septum piercing', 'Piercing septum', 'septum piercing'],
+    ['browpierce', 'Eyebrow piercing', 'Piercing au sourcil', 'eyebrow piercing'],
+    ['lippierce', 'Lip piercing', 'Piercing à la lèvre', 'lip piercing'],
+    ['gaptooth', 'Gap tooth', 'Dents du bonheur', 'gap-toothed smile'],
+    ['braces', 'Braces', 'Appareil dentaire', 'braces on teeth'],
+    ['facetattoo', 'Face tattoo', 'Tatouage au visage', 'small face tattoo'],
+    ['bindi', 'Bindi', 'Bindi', 'bindi'],
+  ], 4),
   // ---------------------------------------------------------------- hair
   group('hairColor', 'hair', 'Hair colour', 'Couleur des cheveux', 'color', [
     ['black', 'Black', 'Noir', 'black', '#17151a'],
@@ -433,7 +570,8 @@ export function traitsPrompt(traits: Traits | null | undefined): { main: string;
   const clothes = outfit
     ? `wearing ${outfit.p}${colors ? ` in ${colors}` : ''}`
     : colors ? `${colors} clothes` : ''
-  const body = [pick(traits, 'height')?.p, pick(traits, 'build')?.p].filter(Boolean).join(', ')
+  const body = [pick(traits, 'proportions')?.p, pick(traits, 'height')?.p, pick(traits, 'build')?.p, pick(traits, 'shoulders')?.p]
+    .filter(Boolean).join(', ')
 
   const main = [
     subject && (species ? subject : `${subject} character`),
@@ -444,7 +582,11 @@ export function traitsPrompt(traits: Traits | null | undefined): { main: string;
   ].filter(Boolean)
   const details = [
     pick(traits, 'faceShape')?.p,
+    pick(traits, 'jaw')?.p,
+    pick(traits, 'cheeks')?.p,
+    ...picks(traits, 'faceDetails').map((o) => o.p),
     pick(traits, 'facialHair')?.p,
+    ...picks(traits, 'bodyDetails').map((o) => o.p),
     ...picks(traits, 'accessories').map((o) => `${o.p}`),
     pick(traits, 'footwear')?.p,
     pick(traits, 'pose')?.p,
@@ -454,10 +596,16 @@ export function traitsPrompt(traits: Traits | null | undefined): { main: string;
     pick(traits, 'nose')?.p,
     pick(traits, 'lips')?.p,
     pick(traits, 'makeup')?.p,
+    pick(traits, 'eyelashes')?.p,
+    pick(traits, 'ears')?.p,
+    pick(traits, 'posture')?.p,
     ...picks(traits, 'personality').map((o) => o.p),
   ].filter(Boolean)
   return { main: main.join(', '), details: details.join(', ') }
 }
+
+/** Groups whose option labels only make sense next to the group name ("Nose: Roman", not "Roman"). */
+const NAMED_IN_SUMMARY = new Set(['height', 'hairLength', 'shoulders', 'eyeShape', 'eyelashes', 'eyebrows', 'nose', 'lips', 'ears', 'posture'])
 
 /** Short human summary in the UI language, e.g. "Elf · Long wavy hair · Mage robes". */
 export function traitsSummary(traits: Traits | null | undefined, lang: 'en' | 'fr', limit = 6): string[] {
@@ -468,7 +616,8 @@ export function traitsSummary(traits: Traits | null | undefined, lang: 'en' | 'f
     const v = traits[g.id]
     const chosen = Array.isArray(v) ? picks(traits, g.id) : pick(traits, g.id) ? [pick(traits, g.id)!] : []
     const sep = lang === 'fr' ? ' : ' : ': '
-    for (const o of chosen) if (o.p) out.push(g.kind === 'color' ? `${lang === 'fr' ? g.fr : g.en}${sep}${label(o)}` : label(o))
+    const prefixed = g.kind === 'color' || NAMED_IN_SUMMARY.has(g.id)
+    for (const o of chosen) if (o.p) out.push(prefixed ? `${lang === 'fr' ? g.fr : g.en}${sep}${label(o)}` : label(o))
   }
   return out.slice(0, limit)
 }
@@ -518,6 +667,10 @@ export function randomTraits(rand: () => number = Math.random): Traits {
   }
   if (rand() < 0.6) t.accessories = some('accessories', 1 + Math.floor(rand() * 2))
   if (rand() < 0.4) t.skinDetails = some('skinDetails', 1)
+  if (rand() < 0.5) t.jaw = one('jaw')
+  if (rand() < 0.5) t.cheeks = one('cheeks')
+  if (rand() < 0.4) t.shoulders = one('shoulders')
+  if (rand() < 0.3) t.faceDetails = some('faceDetails', 1)
   if (rand() < 0.5) t.personality = some('personality', 2)
   if (fantasy && rand() < 0.6) t.features = some('features', 1 + Math.floor(rand() * 2))
   if (t.gender !== 'female' && t.age !== 'child' && t.age !== 'teen' && rand() < 0.5) t.facialHair = one('facialHair', true)
