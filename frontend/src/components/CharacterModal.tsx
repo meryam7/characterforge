@@ -18,6 +18,12 @@ const SWATCH_BG: Record<string, string> = {
   'hairColor:ombre': 'linear-gradient(180deg, #7b46c2, #f19ac0)',
 }
 
+/** "3d render" -> "3D render", "anime" -> "Anime" (style keys are lowercase prompt keys). */
+const styleName = (s: string) => {
+  const x = s.replace(/\b3d\b/i, '3D')
+  return x.charAt(0).toUpperCase() + x.slice(1)
+}
+
 export default function CharacterModal({ onClose, onCreate }: Props) {
   const { t, lang } = useI18n()
   const [step, setStep] = useState(0) // 0 = basics, then SECTIONS
@@ -75,6 +81,24 @@ export default function CharacterModal({ onClose, onCreate }: Props) {
     onCreate({ name, description, style, traits: cleanTraits(traits), seed }, file)
   }
 
+  const basicGroups = GROUPS.filter((g) => g.section === 'basics')
+  const styleHints: Record<string, string> = {
+    anime: t('Clean lines, bright colours'),
+    'pixel art': t('Retro game sprite'),
+    'comic book': t('Bold ink and halftones'),
+    painterly: t('Digital painting'),
+    chibi: t('Cute, big head'),
+    'realistic concept art': t('Detailed and lifelike'),
+    cartoon: t('Simple shapes, thick outlines'),
+    watercolor: t('Soft washes on paper'),
+    '3d render': t('Animated-movie 3D look'),
+    'low poly': t('Faceted 3D game model'),
+    'dark fantasy': t('Gritty and dramatic'),
+    storybook: t("Whimsical children's book"),
+    'ink sketch': t('Black ink linework'),
+    'retro anime': t('90s cel animation'),
+  }
+
   const basics = (
     <div className="space-y-4">
       <div>
@@ -90,25 +114,35 @@ export default function CharacterModal({ onClose, onCreate }: Props) {
         />
         {needName && <p className="mt-1 text-xs text-amber-200">{t('Give your character a name first.')}</p>}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="c-style">{t('Art style')}</label>
-          <select id="c-style" className="input" value={style} onChange={(e) => setStyle(e.target.value)}>
-            {STYLES.map((s) => (
-              <option key={s} value={s}>{t(s)}</option>
-            ))}
-          </select>
+      <fieldset>
+        <legend className="label mb-2">{t('Art style')}</legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {STYLES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={style === s}
+              onClick={() => setStyle(s)}
+              className={`rounded-xl border px-3 py-2 text-left transition ${
+                style === s ? 'border-violet-300 bg-violet-500/30' : 'border-white/10 bg-white/5 hover:border-violet-400/50'
+              }`}
+            >
+              <span className="block text-sm font-semibold text-white">{styleName(t(s))}</span>
+              <span className="block text-[11px] leading-snug text-violet-300/70">{styleHints[s]}</span>
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="label" htmlFor="c-ref">{t('Reference image (optional)')}</label>
-          <input
-            id="c-ref"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="input file:mr-2 file:rounded-lg file:border-0 file:bg-violet-500/30 file:px-2 file:py-1 file:text-xs file:text-violet-100"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </div>
+      </fieldset>
+      {basicGroups.map((g) => <GroupPicker key={g.id} group={g} value={traits[g.id]} onPick={(o) => pick(g, o)} tr={tr} />)}
+      <div>
+        <label className="label" htmlFor="c-ref">{t('Reference image (optional)')}</label>
+        <input
+          id="c-ref"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="input file:mr-2 file:rounded-lg file:border-0 file:bg-violet-500/30 file:px-2 file:py-1 file:text-xs file:text-violet-100"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        />
       </div>
       <div>
         <label className="label" htmlFor="c-desc">{t('Extra details (optional)')}</label>
@@ -132,9 +166,12 @@ export default function CharacterModal({ onClose, onCreate }: Props) {
   const groups = GROUPS.filter((g) => g.section === section)
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-2 pb-[calc(var(--notice-space,0px)+0.5rem)] backdrop-blur-sm sm:p-4 sm:pb-[calc(var(--notice-space,0px)+1rem)]"
+      onClick={onClose}
+    >
       <div
-        className="panel flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden bg-ink-900/95 shadow-glow"
+        className="panel flex max-h-[calc(94vh-var(--notice-space,0px))] w-full max-w-5xl flex-col overflow-hidden bg-ink-900/95 shadow-glow"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -152,7 +189,7 @@ export default function CharacterModal({ onClose, onCreate }: Props) {
 
         <nav className="flex gap-1 overflow-x-auto border-b border-white/10 px-3 py-2" aria-label={t('Steps')}>
           {steps.map((s, i) => {
-            const count = i === 0 ? 0 : GROUPS.filter((g) => g.section === s.id && traits[g.id] !== undefined).length
+            const count = GROUPS.filter((g) => g.section === s.id && traits[g.id] !== undefined).length
             return (
               <button
                 key={s.id}

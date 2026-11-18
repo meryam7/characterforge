@@ -6,7 +6,7 @@
 
 export type Opt = { id: string; en: string; fr: string; p: string; hex?: string }
 export type GroupKind = 'single' | 'color' | 'multi'
-export type SectionId = 'identity' | 'body' | 'skin' | 'face' | 'hair' | 'outfit' | 'extras'
+export type SectionId = 'basics' | 'identity' | 'body' | 'skin' | 'face' | 'hair' | 'outfit' | 'extras'
 export type Group = { id: string; section: SectionId; en: string; fr: string; kind: GroupKind; max?: number; options: Opt[] }
 export type Traits = Record<string, string | string[]>
 
@@ -50,6 +50,75 @@ const OUTFIT_COLORS: Row[] = [
 ]
 
 export const GROUPS: Group[] = [
+  // ---------------------------------------------------------------- basics (shown in the Basics step, not in SECTIONS)
+  group('role', 'basics', 'Role / class', 'Rôle / classe', 'single', [
+    ['warrior', 'Warrior', 'Guerrier', 'warrior'],
+    ['knight', 'Knight', 'Chevalier', 'knight'],
+    ['paladin', 'Paladin', 'Paladin', 'paladin'],
+    ['mage', 'Mage', 'Mage', 'mage'],
+    ['necromancer', 'Necromancer', 'Nécromancien', 'necromancer'],
+    ['healer', 'Healer', 'Soigneur', 'healer'],
+    ['rogue', 'Rogue', 'Voleur', 'rogue'],
+    ['assassin', 'Assassin', 'Assassin', 'assassin'],
+    ['ranger', 'Ranger / archer', 'Rôdeur / archer', 'ranger archer'],
+    ['bard', 'Bard', 'Barde', 'bard'],
+    ['monk', 'Martial artist', 'Artiste martial', 'martial artist monk'],
+    ['ninja', 'Ninja', 'Ninja', 'ninja'],
+    ['pirate', 'Pirate', 'Pirate', 'pirate'],
+    ['bounty', 'Bounty hunter', 'Chasseur de primes', 'bounty hunter'],
+    ['soldier', 'Soldier', 'Soldat', 'soldier'],
+    ['pilot', 'Pilot', 'Pilote', 'pilot'],
+    ['hacker', 'Hacker', 'Hacker', 'hacker'],
+    ['scientist', 'Scientist', 'Scientifique', 'scientist'],
+    ['inventor', 'Inventor', 'Inventeur', 'inventor'],
+    ['detective', 'Detective', 'Détective', 'detective'],
+    ['noble', 'Royal / noble', 'Royal / noble', 'royal noble'],
+    ['merchant', 'Merchant', 'Marchand', 'merchant'],
+    ['farmer', 'Villager', 'Villageois', 'villager'],
+    ['student', 'Student', 'Étudiant', 'student'],
+    ['idol', 'Pop idol', 'Idole pop', 'pop idol singer'],
+    ['chef', 'Chef', 'Chef cuisinier', 'chef'],
+    ['athlete', 'Athlete', 'Athlète', 'athlete'],
+    ['superhero', 'Superhero', 'Super-héros', 'superhero'],
+    ['villain', 'Villain', 'Méchant', 'villain'],
+  ]),
+  group('setting', 'basics', 'World / genre', 'Univers / genre', 'single', [
+    ['highfantasy', 'High fantasy', 'High fantasy', 'high fantasy'],
+    ['grimdark', 'Dark fantasy', 'Dark fantasy', 'grimdark fantasy'],
+    ['fairytale', 'Fairy tale', 'Conte de fées', 'fairy tale'],
+    ['mythology', 'Mythology', 'Mythologie', 'ancient mythology'],
+    ['medieval', 'Medieval', 'Médiéval', 'medieval'],
+    ['wuxia', 'Wuxia', 'Wuxia', 'wuxia'],
+    ['western', 'Wild West', 'Far West', 'wild west'],
+    ['steampunk', 'Steampunk', 'Steampunk', 'steampunk'],
+    ['modern', 'Modern day', 'Monde moderne', 'modern day'],
+    ['urban', 'Urban fantasy', 'Fantasy urbaine', 'urban fantasy'],
+    ['school', 'School life', 'Vie scolaire', 'school life'],
+    ['horror', 'Gothic horror', 'Horreur gothique', 'gothic horror'],
+    ['scifi', 'Sci-fi', 'Science-fiction', 'sci-fi'],
+    ['cyberpunk', 'Cyberpunk', 'Cyberpunk', 'cyberpunk'],
+    ['spaceopera', 'Space opera', 'Space opera', 'space opera'],
+    ['postapoc', 'Post-apocalyptic', 'Post-apocalyptique', 'post-apocalyptic'],
+    ['solarpunk', 'Solarpunk', 'Solarpunk', 'solarpunk'],
+    ['superhero', 'Superhero comic', 'Comics de super-héros', 'superhero comic'],
+  ]),
+  group('view', 'basics', 'Camera view', 'Vue de caméra', 'single', [
+    ['front', 'Front', 'De face', 'front view'],
+    ['threequarter', 'Three-quarter', 'Trois-quarts', 'three-quarter view'],
+    ['side', 'Side (profile)', 'De profil', 'side view, profile'],
+    ['back', 'Back', 'De dos', 'back view'],
+  ]),
+  group('palette', 'basics', 'Colour mood', 'Ambiance de couleurs', 'single', [
+    ['vibrant', 'Vibrant', 'Vives', 'vibrant colors'],
+    ['pastel', 'Pastel', 'Pastel', 'pastel colors'],
+    ['muted', 'Muted', 'Désaturées', 'muted desaturated colors'],
+    ['dark', 'Dark & moody', 'Sombres', 'dark moody colors'],
+    ['warm', 'Warm', 'Chaudes', 'warm color palette'],
+    ['cool', 'Cool', 'Froides', 'cool color palette'],
+    ['earthy', 'Earthy', 'Terreuses', 'earthy tones'],
+    ['neon', 'Neon', 'Néon', 'neon colors'],
+    ['mono', 'Monochrome', 'Monochrome', 'monochrome'],
+  ]),
   // ---------------------------------------------------------------- identity
   group('gender', 'identity', 'Gender', 'Genre', 'single', [
     ['female', 'Female', 'Féminin', 'female'],
@@ -555,7 +624,8 @@ export function cleanTraits(raw: unknown): Traits | null {
 export function traitsPrompt(traits: Traits | null | undefined): { main: string; details: string } {
   if (!traits) return { main: '', details: '' }
   const species = pick(traits, 'species')
-  const subject = words(pick(traits, 'age')?.p, pick(traits, 'gender')?.p, species?.p)
+  const role = pick(traits, 'role')
+  const subject = words(pick(traits, 'setting')?.p, pick(traits, 'age')?.p, pick(traits, 'gender')?.p, species?.p, role?.p)
   const length = pick(traits, 'hairLength')
   const hairWords = words(length?.p, pick(traits, 'hairStyle')?.p, pick(traits, 'hairColor')?.p)
   const hair = length?.id === 'bald' ? 'bald' : hairWords && `${hairWords} hair`
@@ -574,13 +644,15 @@ export function traitsPrompt(traits: Traits | null | undefined): { main: string;
     .filter(Boolean).join(', ')
 
   const main = [
-    subject && (species ? subject : `${subject} character`),
+    subject && (species || role ? subject : `${subject} character`),
     skin, hair, eyes, clothes, body,
+    pick(traits, 'view')?.p,
     pick(traits, 'expression')?.p,
     pick(traits, 'held')?.p,
     ...picks(traits, 'features').map((o) => o.p),
   ].filter(Boolean)
   const details = [
+    pick(traits, 'palette')?.p,
     pick(traits, 'faceShape')?.p,
     pick(traits, 'jaw')?.p,
     pick(traits, 'cheeks')?.p,
@@ -667,6 +739,8 @@ export function randomTraits(rand: () => number = Math.random): Traits {
   }
   if (rand() < 0.6) t.accessories = some('accessories', 1 + Math.floor(rand() * 2))
   if (rand() < 0.4) t.skinDetails = some('skinDetails', 1)
+  if (rand() < 0.7) t.role = one('role')
+  if (rand() < 0.6) t.setting = one('setting')
   if (rand() < 0.5) t.jaw = one('jaw')
   if (rand() < 0.5) t.cheeks = one('cheeks')
   if (rand() < 0.4) t.shoulders = one('shoulders')

@@ -25,6 +25,14 @@ export const STYLES: Record<string, string> = {
   painterly: 'digital painting, painterly brush strokes, rich colors, concept art',
   chibi: 'chibi proportions, cute, big head, kawaii, clean lineart',
   'realistic concept art': 'realistic character concept art, highly detailed, studio lighting',
+  cartoon: 'cartoon style, bold simple shapes, flat colors, thick outlines',
+  watercolor: 'watercolor illustration, soft washes, paper texture',
+  '3d render': 'stylized 3D animated movie character render, soft lighting',
+  'low poly': 'low poly 3D model, flat shaded facets',
+  'dark fantasy': 'dark fantasy art, gritty, dramatic shading, muted colors',
+  storybook: "children's storybook illustration, gouache, whimsical",
+  'ink sketch': 'pen and ink sketch, crosshatching, monochrome linework',
+  'retro anime': '90s retro anime style, cel animation, soft grain',
 }
 
 /** Order matters: SD 1.5 reads only the first ~75 tokens, so identity (builder traits) comes first and secondary

@@ -122,4 +122,4 @@ export type ReportItem = {
 }
 
 // Keys must match STYLES in server/ai.ts
-export const STYLES = ['anime', 'pixel art', 'comic book', 'painterly', 'chibi', 'realistic concept art']
+export const STYLES = ['anime', 'pixel art', 'comic book', 'painterly', 'chibi', 'realistic concept art', 'cartoon', 'watercolor', '3d render', 'low poly', 'dark fantasy', 'storybook', 'ink sketch', 'retro anime']
