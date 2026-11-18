@@ -46,7 +46,10 @@ export default function CharacterModal({ onClose, onCreate }: Props) {
     g?.drawImage(art, 0, 0, target.width, target.height)
   }, [traits, seed])
 
-  useEffect(() => body.current?.scrollTo({ top: 0 }), [step])
+  // Braces matter: newer browsers return a Promise from scrollTo, and React would call it as the effect cleanup (crash).
+  useEffect(() => {
+    body.current?.scrollTo({ top: 0 })
+  }, [step])
 
   const pick = (g: Group, o: Opt) =>
     setTraits((prev) => {

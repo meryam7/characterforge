@@ -49,3 +49,8 @@ Windows 11 Smart App Control can block `workerd.exe` (the local Cloudflare runti
 for the CSRF check): staging accounts, real Gmail emails, real AI. Force a mode with `CHARAFORGE_API=local|staging`.
 To get the local API back: Windows Security → App & browser control → Smart App Control → Off (can't be turned back on
 without resetting Windows), or develop on a machine where workerd runs.
+
+## `useEffect` must not return a value (blank screen "n is not a function")
+Write `useEffect(() => { el.scrollTo(...) }, [...])` with braces, never `useEffect(() => el.scrollTo(...))`: current
+Chrome returns a Promise from `scrollTo`/`scrollIntoView`, React calls it as the cleanup and the whole app goes blank.
+This broke the character builder on its first step change (fixed in `CharacterModal.tsx`).
