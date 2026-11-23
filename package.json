@@ -22,11 +22,11 @@
     "restore:test": "node scripts/restore-test.mjs"
   },
   "dependencies": {
-    "hono": "^4.13.16"
+    "hono": "^4.13.19"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261104.1",
+    "@cloudflare/workers-types": "^5.20261120.1",
     "typescript": "5.6",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.165.0"
   }
 }
